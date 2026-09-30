@@ -1,0 +1,525 @@
+/* Tailwind */
+@import "tailwindcss";
+
+/* Fonts */
+@font-face {
+  font-family: "Liberation Sans";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("https://fonts.cdnfonts.com/s/277/LiberationSans-Regular.woff") format("woff");
+}
+
+@font-face {
+  font-family: "Liberation Sans";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("https://fonts.cdnfonts.com/s/277/LiberationSans-Italic.woff") format("woff");
+}
+
+@font-face {
+  font-family: "Liberation Sans";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("https://fonts.cdnfonts.com/s/277/LiberationSans-Bold.woff") format("woff");
+}
+
+@font-face {
+  font-family: "Liberation Sans";
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+  src: url("https://fonts.cdnfonts.com/s/277/LiberationSans-BoldItalic.woff") format("woff");
+}
+
+/* ─── Theme — Tailwind v4 uses @theme instead of :root for design tokens ─── */
+@theme {
+  /* Colors */
+  --color-background: #0a0c10;
+  --color-foreground: #ffffff;
+
+  --color-card: #121821;
+  --color-card-foreground: #ffffff;
+
+  --color-popover: #121821;
+  --color-popover-foreground: #ffffff;
+
+  --color-primary: #10d260;
+  --color-primary-foreground: #ffffff;
+
+  --color-secondary: #8b949e;
+  --color-secondary-foreground: #ffffff;
+
+  --color-muted: #1f2937;
+  --color-muted-foreground: #9ca3af;
+
+  --color-accent: #1f2937;
+  --color-accent-foreground: #ffffff;
+
+  --color-destructive: #ea3943;
+  --color-destructive-foreground: #ffffff;
+
+  --color-input: #1f2937;
+  --color-ring: #16c784;
+  --color-border: #1e232b;
+  --color-tabs: #94a3b8;
+  --color-tab-text: #cbd5e1;
+  --color-slate: #12161d;
+
+  /* Custom brand colors */
+  --color-green-text: #14e96c;
+  --color-option-yes: #162f2d;
+  --color-option-no: #411c29;
+  --color-yes: #059669;
+  --color-no: #e11d48;
+  --color-market-green: #16c784;
+  --color-market-red: #ea3943;
+  --color-market-blue: #3b82f6;
+  --color-dispute: #f59e0b;
+
+  /* Radius */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+
+  /* Fonts */
+  --font-sans: "Inter", sans-serif;
+  --font-liberation: "Liberation Sans", sans-serif;
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideUp {
+    from {
+      transform: translate(-50%, 100%);
+    }
+
+    to {
+      transform: translate(-50%, -50%);
+    }
+  }
+
+  --animate-fadeIn: fadeIn 0.2s ease-out;
+  --animate-slideUp: slideUp 0.3s ease-out;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@layer components {
+  .container {
+    @apply mx-auto px-5 md:px-15 max-w-[1280px] min-[1680px]:max-w-[1450px];
+  }
+}
+
+@layer base {
+  a,
+  button {
+    cursor: pointer;
+  }
+
+  *,
+  *::before,
+  *::after {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-white;
+  }
+}
+
+/* font sizes */
+.font-xxs {
+  font-size: 8px;
+}
+
+.font-xs {
+  font-size: 10px;
+}
+
+.font-base {
+  font-size: 12px;
+}
+
+.font-sm {
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.font-default {
+  font-size: 16px;
+}
+
+.font-md {
+  font-size: 18px;
+}
+
+.font-lg {
+  font-size: 24px;
+}
+
+.font-xl {
+  font-size: 30px;
+  line-height: 37.5px;
+}
+
+.font-2xl {
+  font-size: 36px;
+  line-height: 40px;
+}
+
+.font-xxl {
+  font-size: 32px;
+  line-height: 36px;
+}
+
+.h2 {
+  font-size: 18px;
+}
+
+.h3 {
+  font-size: 14px;
+}
+
+/* ─── Border radius utilities ────────────────────────────────────────────────── */
+.rounded-2sm {
+  border-radius: 6px;
+}
+
+.rounded-2md {
+  border-radius: 10px;
+}
+
+/* ─── Toast Animations ─── */
+@keyframes toast-slide-in-right {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes toast-slide-out-right {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+
+  to {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+}
+
+@keyframes toast-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes toast-fade-out {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+/* ─── Toast Entry Animation ─── */
+[data-sonner-toast] {
+  /* Allow Sonner's internal animations to handle positioning */
+  transition:
+    transform 0.3s ease-out,
+    opacity 0.3s ease-out !important;
+}
+
+/* ─── Ensure multiple toasts are visible (not collapsed) ─── */
+[data-sonner-toast][data-expanded="true"],
+[data-sonner-toast][data-front="true"] {
+  opacity: 1 !important;
+}
+
+[data-sonner-toast][data-expanded="false"][data-front="false"] > * {
+  opacity: 1 !important;
+}
+
+/* ─── Toast Exit Animation ─── */
+[data-sonner-toast][data-removed="true"] {
+  animation:
+    toast-slide-out-right 0.3s ease-in forwards,
+    toast-fade-out 0.2s ease-in forwards;
+  transition: none !important;
+}
+
+/* ─── Custom Toast Styling ─── */
+.app-toast-notification {
+  background: rgba(30, 35, 43, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 16px 20px;
+  width: 360px;
+  max-width: 90vw;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.app-toast-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  width: 24px;
+  height: 24px;
+}
+
+.app-toast-icon-svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2.5;
+}
+
+.app-toast-title {
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.app-toast-description {
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 1.4;
+  opacity: 0.85;
+  margin-top: 4px;
+}
+
+.app-toast-close {
+  background: transparent;
+  border: 1px solid currentColor;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.app-toast-close:hover {
+  opacity: 1;
+}
+
+/* custom toast theme */
+
+/* ─── Success Toast (Green) ─── */
+[data-sonner-toast][data-rich-colors="true"][data-type="success"] {
+  background: rgba(22, 47, 45, 0.95);
+  border-color: rgba(16, 210, 96, 0.55);
+  color: #10d260;
+}
+
+[data-sonner-toast][data-rich-colors="true"][data-type="success"] [data-close-button],
+[data-sonner-toast][data-rich-colors="true"][data-type="success"] [data-icon] svg {
+  color: #10d260;
+}
+
+[data-sonner-toast][data-rich-colors="true"][data-type="success"] [data-description] {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* ─── Error Toast (Red) ─── */
+[data-sonner-toast][data-rich-colors="true"][data-type="error"] {
+  background: rgba(65, 28, 41, 0.95);
+  border-color: rgba(234, 57, 67, 0.55);
+  color: #ff6b6b;
+}
+
+[data-sonner-toast][data-rich-colors="true"][data-type="error"] [data-close-button],
+[data-sonner-toast][data-rich-colors="true"][data-type="error"] [data-icon] svg {
+  color: #ff6b6b;
+}
+
+[data-sonner-toast][data-rich-colors="true"][data-type="error"] [data-description] {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* ─── Info Toast (Grey) ─── */
+[data-sonner-toast][data-rich-colors="true"][data-type="info"] {
+  background: rgba(20, 44, 70, 0.95);
+  border-color: rgba(148, 163, 184, 0.55);
+  color: #cbd5e1;
+}
+
+[data-sonner-toast][data-rich-colors="true"][data-type="info"] [data-close-button],
+[data-sonner-toast][data-rich-colors="true"][data-type="info"] [data-icon] svg {
+  color: #cbd5e1;
+}
+
+[data-sonner-toast][data-rich-colors="true"][data-type="info"] [data-description] {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* ─── Warning Toast (Yellow) ─── */
+[data-sonner-toast][data-rich-colors="true"][data-type="warning"] {
+  background: rgba(64, 48, 20, 0.95);
+  border-color: rgba(245, 158, 11, 0.55);
+  color: #fbbf24;
+}
+
+[data-sonner-toast][data-rich-colors="true"][data-type="warning"] [data-close-button],
+[data-sonner-toast][data-rich-colors="true"][data-type="warning"] [data-icon] svg {
+  color: #fbbf24;
+}
+
+[data-sonner-toast][data-rich-colors="true"][data-type="warning"] [data-description] {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* ─── Default/Normal/Action Toast (Neutral Grey) ─── */
+[data-sonner-toast][data-rich-colors="true"][data-type="default"],
+[data-sonner-toast][data-rich-colors="true"][data-type="normal"],
+[data-sonner-toast][data-rich-colors="true"][data-type="action"] {
+  background: rgba(18, 22, 29, 1);
+  border-color: rgba(100, 116, 139, 0.55);
+  color: #d1d5db;
+}
+
+[data-sonner-toast][data-rich-colors="true"][data-type="default"] [data-close-button],
+[data-sonner-toast][data-rich-colors="true"][data-type="normal"] [data-close-button],
+[data-sonner-toast][data-rich-colors="true"][data-type="action"] [data-close-button],
+[data-sonner-toast][data-rich-colors="true"][data-type="default"] [data-icon] svg,
+[data-sonner-toast][data-rich-colors="true"][data-type="normal"] [data-icon] svg,
+[data-sonner-toast][data-rich-colors="true"][data-type="action"] [data-icon] svg {
+  color: #d1d5db;
+}
+
+[data-sonner-toast][data-rich-colors="true"][data-type="default"] [data-description],
+[data-sonner-toast][data-rich-colors="true"][data-type="normal"] [data-description],
+[data-sonner-toast][data-rich-colors="true"][data-type="action"] [data-description] {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+[data-sonner-toast][data-rich-colors="true"][data-styled="true"] [data-button] {
+  border-radius: 6px;
+}
+
+[data-sonner-toast][data-rich-colors="true"] [data-close-button] {
+  background: transparent;
+  border-color: currentColor;
+}
+
+[data-sonner-toast][data-rich-colors="true"] [data-icon] {
+  min-width: 20px;
+}
+
+.rounded-xxl {
+  border-radius: 20px;
+}
+
+@media (max-width: 1479px) {
+  .ep-layout-inner {
+    grid-template-columns: 1fr 300px !important;
+    gap: 16px !important;
+  }
+}
+
+@media (max-width: 1023px) {
+  .ep-layout-inner {
+    grid-template-columns: 1fr !important;
+  }
+
+  .ep-right-col {
+    display: none !important;
+  }
+}
+
+@media only screen and (max-width: 1380px) {
+  .font-2xl {
+    font-size: 32px;
+    line-height: 36px;
+  }
+}
+
+@media only screen and (max-width: 880px) {
+  .font-2xl {
+    font-size: 28px;
+    line-height: 32px;
+  }
+
+  .font-xl {
+    font-size: 24px;
+    line-height: 30px;
+  }
+
+  .font-xxl {
+    font-size: 24px;
+    line-height: 30px;
+  }
+
+  .font-lg {
+    font-size: 20px;
+  }
+
+  .font-md {
+    font-size: 16px;
+  }
+}
+
+@media only screen and (max-width: 600px) {
+  .font-2xl {
+    font-size: 24px;
+    line-height: 28px;
+  }
+
+  .font-xl {
+    font-size: 20px;
+    line-height: 25px;
+  }
+
+  .font-default {
+    font-size: 12px;
+    line-height: 16px;
+  }
+
+  .font-xxl {
+    font-size: 20px;
+    line-height: 25px;
+  }
+
+  .font-lg {
+    font-size: 18px;
+  }
+
+  .font-md {
+    font-size: 15px;
+  }
+
+  .h2 {
+    font-size: 13px;
+  }
+
+  .h3 {
+    font-size: 14px;
+  }
+}

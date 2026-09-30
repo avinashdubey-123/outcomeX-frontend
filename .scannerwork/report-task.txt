@@ -1,0 +1,6 @@
+projectKey=polymarket-clone
+serverUrl=http://localhost:9000
+serverVersion=26.3.0.120487
+dashboardUrl=http://localhost:9000/dashboard?id=polymarket-clone
+ceTaskId=cbb5d110-046f-4218-b80e-7d8a84e8cf71
+ceTaskUrl=http://localhost:9000/api/ce/task?id=cbb5d110-046f-4218-b80e-7d8a84e8cf71

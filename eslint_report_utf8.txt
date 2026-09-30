@@ -1,0 +1,54 @@
+﻿
+C:\Users\yasha\projects\polymarket-clone-demo\src\components\layout\HeroBanner.tsx
+  27:5  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+
+C:\Users\yasha\projects\polymarket-clone-demo\src\components\layout\Navbar.tsx
+  211:11  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+
+C:\Users\yasha\projects\polymarket-clone-demo\src\features\api\markets\marketApi.ts
+  15:3  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+
+C:\Users\yasha\projects\polymarket-clone-demo\src\features\auth\loginHandlers.ts
+  158:5  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+
+C:\Users\yasha\projects\polymarket-clone-demo\src\hooks\trade\useTrade.ts
+   85:5  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  121:7  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  128:5  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  142:7  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  148:5  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  154:5  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  187:5  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  188:5  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  195:5  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  196:5  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  201:5  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  219:5  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  237:7  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  255:7  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  259:7  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  260:7  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  278:7  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  283:7  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  343:7  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+
+C:\Users\yasha\projects\polymarket-clone-demo\src\hooks\useRedeem.ts
+   85:7  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  100:7  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  102:7  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+
+C:\Users\yasha\projects\polymarket-clone-demo\src\hooks\useWalletBalance.ts
+  33:7  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  60:9  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+
+C:\Users\yasha\projects\polymarket-clone-demo\src\layouts\PublicLayout.tsx
+  31:7  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+
+C:\Users\yasha\projects\polymarket-clone-demo\src\pages\Home.tsx
+  19:3  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+
+C:\Users\yasha\projects\polymarket-clone-demo\src\pages\profile\ProfilePage.tsx
+  188:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+Γ£û 31 problems (1 error, 30 warnings)
+
