@@ -165,6 +165,11 @@ export const useTrade = () => {
   // ── Step 4: sign order (EIP-712) ──────────────────────────────────────────
   const signOrder = async (signer: ethers.JsonRpcSigner, order: TradeOrder) => {
     const tokenId = order.outcome === "Yes" ? order.yesTokenOnChainId : order.noTokenOnChainId
+    if (!tokenId) {
+      throw new Error(
+        "This market isn't live on-chain yet — its outcome tokens haven't been minted.",
+      )
+    }
 
     const domain = {
       name: "PolymarketCTFExchange",

@@ -28,6 +28,7 @@ export function extractDisputeData(
     bondAmount: bondAmountMicro, // micro-units string — pass directly to contract
     bondAmountUSDC, // e.g. 100.0 — used for display
     proposedTimestamp: proposeEntry.createdAt, // ISO string from createdAt
+    proposedResponse: proposeEntry.response, // 0 = NO, 1 = YES, or null
     // identifier is NOT in the timeline — it comes from market.oracleIdentifier
   }
 }

@@ -16,6 +16,8 @@ interface MarketResolvedCardProps {
   marketId?: string
   /** The `action` value of the latest entry in the oracle timeline, or null/undefined if not loaded yet. */
   latestOracleAction?: number | null
+  /** The proposed-but-not-yet-settled answer from the oracle timeline, if any. */
+  proposedOutcome?: "YES" | "NO" | null
 }
 
 const formatMarketDate = (iso: string) =>
@@ -30,11 +32,13 @@ export const MarketResolvedCard = ({
   resolutionTime,
   marketId,
   latestOracleAction,
+  proposedOutcome,
 }: MarketResolvedCardProps) => {
   const navigate = useNavigate()
   const isYesWon = winningOutcome === "YES"
   const TBD = winningOutcome === "To be decided"
   const color = TBD ? "#A9A8AD" : isYesWon ? "#00c853" : "#e53935"
+  const showProposed = TBD && proposedOutcome != null
 
   // ── Dispute is only allowed when the LATEST oracle action is PROPOSE (1).
   // Any subsequent state (DISPUTE, DISPUTE_SETTLEMENT, SETTLE) means it's too
@@ -61,11 +65,24 @@ export const MarketResolvedCard = ({
       </div>
       {/* Body */}
       <div className="px-5  text-center">
-        <div className="font-default font-bold uppercase text-primary/70 mb-2.5">Outcome</div>
-
-        <div className="inline-block py-2 px-3.5 tracking-wider" style={{ color: color }}>
-          {winningOutcome}
+        <div className="font-default font-bold uppercase text-primary/70 mb-2.5">
+          {showProposed ? "Proposed Outcome" : "Outcome"}
         </div>
+
+        <div
+          className="inline-block py-2 px-3.5 tracking-wider"
+          style={{
+            color: showProposed ? (proposedOutcome === "YES" ? "#00c853" : "#e53935") : color,
+          }}
+        >
+          {showProposed ? proposedOutcome : winningOutcome}
+        </div>
+
+        {showProposed && (
+          <p className="text-xs text-white/40 italic -mt-1 mb-1">
+            Awaiting settlement — not yet final
+          </p>
+        )}
       </div>
 
       {/* Dispute Section */}

@@ -160,6 +160,19 @@ const EventPage = () => {
     }
   }
 
+  // ── Proposed-but-not-yet-settled outcome — surfaced from the oracle timeline
+  // so the UI shows "Proposed: YES" instead of a bare "To be decided" while
+  // the on-chain dispute window is still open.
+  const latestTimelineResponse: number | null = oracleTimeline?.data?.length
+    ? (oracleTimeline.data[oracleTimeline.data.length - 1]?.response ?? null)
+    : null
+  const proposedOutcome =
+    displayWinningOutcome == null && latestTimelineResponse != null
+      ? latestTimelineResponse === 1
+        ? "YES"
+        : "NO"
+      : null
+
   return (
     <>
       <div className=" bg-background text-white selection:bg-primary/30 mt-4 md:mt-6 mb-12 md:mb-18.5 overflow-x-hidden">
@@ -321,6 +334,7 @@ const EventPage = () => {
                     resolutionTime={market.resolutionTime}
                     marketId={market.id}
                     latestOracleAction={latestOracleAction}
+                    proposedOutcome={proposedOutcome}
                   />
                 ) : (
                   <>
@@ -374,6 +388,7 @@ const EventPage = () => {
                     }
                     resolutionTime={market.resolutionTime}
                     latestOracleAction={latestOracleAction}
+                    proposedOutcome={proposedOutcome}
                   />
                 </div>
               ) : (

@@ -232,7 +232,13 @@ The backend will automatically detect the AnswerDisputed event and update the da
             <h3 className="font-xs font-bold text-white/40 uppercase tracking-widest mb-4">
               Proposed Outcome
             </h3>
-            <p className="font-lg font-bold text-white tracking-tight">TBD from Timeline</p>
+            <p className="font-lg font-bold text-white tracking-tight">
+              {disputeData.proposedResponse === 1
+                ? "YES"
+                : disputeData.proposedResponse === 0
+                  ? "NO"
+                  : "N/A"}
+            </p>
           </div>
         </div>
 
