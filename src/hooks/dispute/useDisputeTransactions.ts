@@ -35,6 +35,17 @@ export const useDisputeTransactions = () => {
 
       // 1. Create the instance of the USDC contract using the existing pattern
       const usdc = new ethers.Contract(ADDRESSES.USDC, ERC20_ABI, signer)
+      const userAddress = await signer.getAddress()
+
+      // Call directly on the contract instance using explicit type instead of any
+      const currentAllowance = await (
+        usdc as unknown as { allowance: (owner: string, spender: string) => Promise<bigint> }
+      ).allowance(userAddress, oracleAddress)
+      if (currentAllowance >= BigInt(bondAmount)) {
+        onStatusUpdate("✅ Sufficient USDC allowance already granted.")
+        setIsApproving(false)
+        return { success: true, txHash: "already-approved" }
+      }
 
       onStatusUpdate("Please confirm the USDC approval in your wallet...")
 

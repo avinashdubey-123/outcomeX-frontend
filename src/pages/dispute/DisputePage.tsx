@@ -115,6 +115,10 @@ Dispute Tx: ${disputeResult.txHash}
       
 The backend will automatically detect the AnswerDisputed event and update the database.`)
 
+      if (id) {
+        localStorage.setItem(`dispute_raised_${id}`, "true")
+      }
+
       // Auto close after 5 seconds
       setTimeout(() => {
         navigate(-1)
@@ -278,9 +282,9 @@ The backend will automatically detect the AnswerDisputed event and update the da
         </div>
 
         {/* Row 3: Warning */}
-        <div className="bg-[#0a0b0d] border border-white/10 rounded-xl overflow-hidden shadow-2xl max-w-96">
-          <div className="p-8 bg-option-no flex gap-6 items-start">
-            <div className="p-3 bg-red-500/20 rounded-lg text-red-500">
+        <div className="bg-[#0a0b0d] border border-white/10 rounded-xl overflow-hidden shadow-2xl max-w-full md:max-w-96">
+          <div className="p-6 md:p-8 bg-option-no flex flex-col md:flex-row gap-4 md:gap-6 items-start">
+            <div className="p-3 bg-red-500/20 rounded-lg text-red-500 w-fit">
               <AlertTriangle size={24} />
             </div>
             <div className="space-y-2">
@@ -304,7 +308,7 @@ The backend will automatically detect the AnswerDisputed event and update the da
 
       {/* Status Display */}
       {status && (
-        <div className="mt-6 bg-[#00FF87]/5 border border-[#00FF87]/20 p-6 font-mono text-xs text-[#00FF87] whitespace-pre-wrap animate-in fade-in slide-in-from-top-2 duration-300 rounded-lg">
+        <div className="mt-6 bg-[#00FF87]/5 border border-[#00FF87]/20 p-6 font-mono text-xs text-[#00FF87] whitespace-pre-wrap animate-in fade-in slide-in-from-top-2 duration-300 rounded-lg break-words">
           <div className="flex items-center gap-2 mb-2 font-black uppercase tracking-widest text-[10px] opacity-70">
             <Loader2 size={12} className={isSubmitting ? "animate-spin" : ""} />
             Execution Log
@@ -314,18 +318,18 @@ The backend will automatically detect the AnswerDisputed event and update the da
       )}
 
       {/* Actions */}
-      <div className="flex items-center justify-end gap-8 mt-10">
+      <div className="flex flex-col-reverse md:flex-row items-center justify-end gap-4 md:gap-8 mt-10">
         <button
           onClick={handleCancel}
           disabled={isSubmitting}
-          className="text-white/40 hover:text-white font-bold uppercase tracking-widest text-xs transition-colors disabled:opacity-50 cursor-pointer"
+          className="w-full md:w-auto text-white/40 hover:text-white font-bold uppercase tracking-widest text-xs transition-colors disabled:opacity-50 cursor-pointer py-3 md:py-0"
         >
           Cancel
         </button>
         <button
           onClick={handleSubmit}
           disabled={isSubmitting || countdown === "Expired"}
-          className="flex items-center   font-base  bg-primary  text-black hover:bg-primary/90 mb-8  border-none px-10 py-4 rounded-sm font-bold uppercase tracking-widest text-xs transition-all disabled:opacity-50 disabled:grayscale  gap-3 shadow-[0_0_20px_rgba(0,255,135,0.2)] active:scale-95 cursor-pointer"
+          className="w-full md:w-auto flex justify-center items-center font-base bg-primary text-black hover:bg-primary/90 md:mb-8 border-none px-10 py-4 rounded-sm font-bold uppercase tracking-widest text-xs transition-all disabled:opacity-50 disabled:grayscale gap-3 shadow-[0_0_20px_rgba(0,255,135,0.2)] active:scale-95 cursor-pointer"
         >
           {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Gavel size={16} />}
           {countdown === "Expired" ? "Period Expired" : "Submit Dispute"}

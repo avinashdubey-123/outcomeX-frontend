@@ -1,5 +1,6 @@
 // src/components/market/MarketResolvedCard.tsx
 
+import { useEffect, useState } from "react"
 import { useNavigate } from "react-router"
 
 // Mirror of backend RESOLUTION_ACTION constants
@@ -39,11 +40,21 @@ export const MarketResolvedCard = ({
   const TBD = winningOutcome === "To be decided"
   const color = TBD ? "#A9A8AD" : isYesWon ? "#00c853" : "#e53935"
   const showProposed = TBD && proposedOutcome != null
+  const isDisputeSettlement = latestOracleAction === RESOLUTION_ACTION.DISPUTE_SETTLEMENT
+  const isSettle = latestOracleAction === RESOLUTION_ACTION.SETTLE
+
+  const [localDisputeRaised, setLocalDisputeRaised] = useState(false)
+
+  useEffect(() => {
+    if (marketId && localStorage.getItem(`dispute_raised_${marketId}`) === "true") {
+      setLocalDisputeRaised(true)
+    }
+  }, [marketId])
 
   // ── Dispute is only allowed when the LATEST oracle action is PROPOSE (1).
   // Any subsequent state (DISPUTE, DISPUTE_SETTLEMENT, SETTLE) means it's too
   // late — either already disputed or fully settled.
-  const canRaiseDispute = latestOracleAction === RESOLUTION_ACTION.PROPOSE
+  const canRaiseDispute = latestOracleAction === RESOLUTION_ACTION.PROPOSE && !localDisputeRaised
 
   const handleRaiseDispute = () => {
     navigate(`/dispute/${marketId ?? ""}`)
@@ -66,7 +77,11 @@ export const MarketResolvedCard = ({
       {/* Body */}
       <div className="px-5  text-center">
         <div className="font-default font-bold uppercase text-primary/70 mb-2.5">
-          {showProposed ? "Proposed Outcome" : "Outcome"}
+          {isSettle
+            ? "Finalised Outcome"
+            : showProposed && !isDisputeSettlement
+              ? "Proposed Outcome"
+              : "Outcome"}
         </div>
 
         <div
@@ -78,7 +93,7 @@ export const MarketResolvedCard = ({
           {showProposed ? proposedOutcome : winningOutcome}
         </div>
 
-        {showProposed && (
+        {showProposed && !isDisputeSettlement && !isSettle && (
           <p className="text-xs text-white/40 italic -mt-1 mb-1">
             Awaiting settlement — not yet final
           </p>
@@ -96,7 +111,8 @@ export const MarketResolvedCard = ({
           </button>
         ) : latestOracleAction == null ? null : ( // Timeline not yet loaded — show nothing to avoid flash of wrong state
           <p className="text-xs text-white/40 italic">
-            {latestOracleAction === RESOLUTION_ACTION.DISPUTE && "Dispute already raised"}
+            {(latestOracleAction === RESOLUTION_ACTION.DISPUTE || localDisputeRaised) &&
+              "Dispute already raised"}
             {latestOracleAction === RESOLUTION_ACTION.DISPUTE_SETTLEMENT &&
               "Dispute settled by admin"}
             {latestOracleAction === RESOLUTION_ACTION.SETTLE &&
@@ -108,7 +124,9 @@ export const MarketResolvedCard = ({
                 RESOLUTION_ACTION.DISPUTE_SETTLEMENT,
                 RESOLUTION_ACTION.SETTLE,
               ] as number[]
-            ).includes(latestOracleAction) && "Dispute not available"}
+            ).includes(latestOracleAction!) &&
+              !localDisputeRaised &&
+              "Dispute not available"}
           </p>
         )}
       </div>
