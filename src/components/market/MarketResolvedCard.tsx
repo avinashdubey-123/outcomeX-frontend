@@ -111,22 +111,13 @@ export const MarketResolvedCard = ({
           </button>
         ) : latestOracleAction == null ? null : ( // Timeline not yet loaded — show nothing to avoid flash of wrong state
           <p className="text-xs text-white/40 italic">
-            {(latestOracleAction === RESOLUTION_ACTION.DISPUTE || localDisputeRaised) &&
-              "Dispute already raised"}
-            {latestOracleAction === RESOLUTION_ACTION.DISPUTE_SETTLEMENT &&
-              "Dispute settled by admin"}
-            {latestOracleAction === RESOLUTION_ACTION.SETTLE &&
-              "Market settled — dispute period closed"}
-            {/* Fallback for any unexpected state */}
-            {!(
-              [
-                RESOLUTION_ACTION.DISPUTE,
-                RESOLUTION_ACTION.DISPUTE_SETTLEMENT,
-                RESOLUTION_ACTION.SETTLE,
-              ] as number[]
-            ).includes(latestOracleAction!) &&
-              !localDisputeRaised &&
-              "Dispute not available"}
+            {latestOracleAction === RESOLUTION_ACTION.SETTLE
+              ? "Market settled — dispute period closed"
+              : latestOracleAction === RESOLUTION_ACTION.DISPUTE_SETTLEMENT
+                ? "Dispute settled by admin"
+                : latestOracleAction === RESOLUTION_ACTION.DISPUTE || localDisputeRaised
+                  ? "Dispute already raised"
+                  : "Dispute not available"}
           </p>
         )}
       </div>
