@@ -14,25 +14,20 @@
 import { toast } from "sonner"
 
 import type { AppDispatch } from "@/app/store"
+import type { useLoginMutation } from "@/features/api/auth/authApi"
 import { loadingFalse, loadingTrue, login, triggerWalletRefresh } from "@/features/auth/authSlice"
 import { LOGIN_METHODS, type LoginMethod } from "@/features/auth/authTypes/loginMethodsTypes"
+import { setActiveInjectedProvider } from "@/features/auth/lib/injectedProvider"
 import type { Magic } from "@/features/auth/lib/magic"
+import type { EIP1193Provider, EIP6963AnnounceProviderEvent } from "@/hooks/useEIP6963"
 import { wasMetaMaskLoggedOut } from "@/routes/utils"
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-/** Matches the shape returned by useLoginMutation / loginToBackend */
-type LoginResult = {
-  data: { token: string }
-}
-
-/** Minimal signature of the RTK mutation trigger we need */
-type LoginFn = (args: {
-  didToken: string
-  deviceToken?: string | null
-}) => Promise<{ data: LoginResult }>
+/** The exact signature of the RTK mutation trigger we need */
+type LoginFn = ReturnType<typeof useLoginMutation>[0]
 
 // ---------------------------------------------------------------------------
 // 1. Google OAuth redirect result
@@ -49,7 +44,7 @@ export async function checkGoogleRedirect(
   loginToBackend: LoginFn,
   deviceToken?: string | null,
 ): Promise<boolean> {
-  let resultFromBackend!: LoginResult
+  let resultFromBackend!: Awaited<ReturnType<ReturnType<LoginFn>["unwrap"]>>
   let result: Awaited<ReturnType<NonNullable<Magic["oauth2"]["getRedirectResult"]>>> | undefined
 
   try {
@@ -57,8 +52,7 @@ export async function checkGoogleRedirect(
     if (!result) return false
 
     const magicToken = result.magic.idToken
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resultFromBackend = await (loginToBackend as any)({
+    resultFromBackend = await loginToBackend({
       didToken: magicToken,
       deviceToken: deviceToken || "none",
     }).unwrap()
@@ -115,8 +109,7 @@ export async function checkMagicSession(
 
     const userInfo = await magic?.user.getInfo()
     const magicToken = await magic?.user.getIdToken()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const resultFromBackend = await (loginToBackend as any)({
+    const resultFromBackend = await loginToBackend({
       didToken: (magicToken as string) ?? null,
       deviceToken: deviceToken || "none",
     }).unwrap()
@@ -141,16 +134,12 @@ export async function checkMagicSession(
   }
 }
 
-import { setActiveInjectedProvider } from "@/features/auth/lib/injectedProvider"
-import type { EIP1193Provider } from "@/hooks/useEIP6963"
-
 // Helper to reliably discover the specific EIP-6963 wallet we previously used
 const discoverWalletByRdns = async (targetRdns: string): Promise<EIP1193Provider | null> => {
   return new Promise((resolve) => {
     let found = false
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const onAnnounce = (event: any) => {
-      const providerDetail = event.detail
+    const onAnnounce = (event: Event) => {
+      const providerDetail = (event as unknown as EIP6963AnnounceProviderEvent).detail
       if (providerDetail.info.rdns === targetRdns) {
         found = true
         window.removeEventListener("eip6963:announceProvider", onAnnounce)

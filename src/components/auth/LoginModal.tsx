@@ -112,8 +112,7 @@ export const LoginModal = ({ open, onClose }: LoginModalProps) => {
                 email,
                 magic,
                 dispatch,
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                loginToBackend: loginToBackend as any,
+                loginToBackend,
                 deviceToken: deviceToken as string,
                 onSuccess: () => {
                   setLoading(null)
@@ -131,8 +130,7 @@ export const LoginModal = ({ open, onClose }: LoginModalProps) => {
                 email,
                 magic,
                 dispatch,
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                loginToBackend: loginToBackend as any,
+                loginToBackend,
                 deviceToken: deviceToken as string,
                 onSuccess: () => {
                   setLoading(null)
@@ -168,10 +166,8 @@ export const LoginModal = ({ open, onClose }: LoginModalProps) => {
                 handleInjectedLogin({
                   wallet,
                   dispatch,
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  loginWallet: loginWallet as any,
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  verifyWallet: verifyWallet as any,
+                  loginWallet,
+                  verifyWallet,
                   deviceToken: deviceToken as string,
                   onSuccess: () => {
                     setLoading(null)

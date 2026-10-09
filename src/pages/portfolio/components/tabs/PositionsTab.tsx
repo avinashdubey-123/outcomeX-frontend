@@ -50,8 +50,7 @@ const mapApiPosition = (p: ApiPortfolioPosition): Position => {
     collateralToken: ADDRESSES.USDC,
     isResolved: p.resolved ?? false,
     winningOutcome: (() => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const outcome = p.winningOutcome ?? (p.market as any)?.winningOutcome
+      const outcome = p.winningOutcome ?? p.market?.winningOutcome
       if (outcome != null) {
         const str = String(outcome).toUpperCase()
         if (str === "1" || str === "YES") return "YES"

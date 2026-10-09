@@ -366,10 +366,7 @@ const EventPage = () => {
             style={{ animation: "fadeIn 0.2s ease-out" }}
             onClick={() => setIsMobileTradeOpen(false)}
           />
-          <div
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#11141b] border-t border-white/10 rounded-[20px] z-201 max-h-[90vh] w-auto overflow-y-auto no-scrollbar max-w-[436px] min-w-[313px]"
-            // style={{ animation: "slideUp 0.3s ease-out" }}
-          >
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#11141b] border-t border-white/10 rounded-[20px] z-201 max-h-[90vh] w-auto overflow-y-auto no-scrollbar max-w-[436px] min-w-[313px]">
             <div className="flex justify-between items-center px-6 pt-5 pb-2.5 ">
               <span className="font-lg font-bold">Place Bet</span>
               <button

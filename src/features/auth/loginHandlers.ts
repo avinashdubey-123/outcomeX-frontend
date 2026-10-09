@@ -13,29 +13,23 @@ import { getAddress } from "ethers"
 import { toast } from "sonner"
 
 import type { AppDispatch } from "@/app/store"
+import type {
+  useLoginMutation,
+  useLoginWalletMutation,
+  useVerifyWalletMutation,
+} from "@/features/api/auth/authApi"
 import { loadingFalse, loadingTrue, login, setTempToken } from "@/features/auth/authSlice"
 import { LOGIN_METHODS } from "@/features/auth/authTypes/loginMethodsTypes"
+import { setActiveInjectedProvider } from "@/features/auth/lib/injectedProvider"
 import type { Magic } from "@/features/auth/lib/magic"
+import type { EIP6963ProviderDetail } from "@/hooks/useEIP6963"
 import { clearMetaMaskLoggedOut } from "@/routes/utils"
 
 import { switchToAmoy } from "./switchChain"
 
-// ---------------------------------------------------------------------------
-// Shared dependency types (minimal — only what we actually use)
-// ---------------------------------------------------------------------------
-
-type LoginFn = (args: {
-  didToken: string
-  deviceToken?: string | null
-}) => Promise<{ data: { data: { token: string } } }>
-type LoginWalletFn = (args: { publicAddress: string }) => Promise<{
-  data: { data: { nonce: string; token: string } }
-}>
-
-//made device token an optional thing.
-type VerifyWalletFn = (args: { signature: string; deviceToken?: string | null }) => Promise<{
-  data: { data: { token: string } }
-}>
+type LoginFn = ReturnType<typeof useLoginMutation>[0]
+type LoginWalletFn = ReturnType<typeof useLoginWalletMutation>[0]
+type VerifyWalletFn = ReturnType<typeof useVerifyWalletMutation>[0]
 
 // ---------------------------------------------------------------------------
 // Email OTP login via Magic
@@ -69,8 +63,7 @@ export async function handleEmailLogin({
 
     // RTK Query's unwrap() automatically throws if the request fails (like 400 Bad Request)
     // We pass "none" as a fallback because the backend strictly requires a string.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const resultBackend = await (loginToBackend as any)({
+    const resultBackend = await loginToBackend({
       didToken: magicToken,
       deviceToken: deviceToken || "none",
     }).unwrap()
@@ -137,9 +130,6 @@ export async function handleGoogleLogin({
 // MetaMask wallet login (challenge-response signature flow)
 // ---------------------------------------------------------------------------
 
-import { setActiveInjectedProvider } from "@/features/auth/lib/injectedProvider"
-import type { EIP6963ProviderDetail } from "@/hooks/useEIP6963"
-
 export async function handleInjectedLogin({
   wallet,
   dispatch,
@@ -175,7 +165,7 @@ export async function handleInjectedLogin({
     dispatch(setTempToken({ token: null }))
     const {
       data: { nonce, token: tempToken },
-    } = await loginWallet({ publicAddress: publicAddress as string }).then((r) => r.data)
+    } = await loginWallet({ publicAddress: publicAddress as string }).unwrap()
     dispatch(setTempToken({ token: tempToken }))
 
     // Step 3: ask MetaMask to sign the nonce
@@ -187,8 +177,7 @@ export async function handleInjectedLogin({
     // Step 4: verify signature with backend
     // Only include deviceToken in the payload when it is available
     // Only include deviceToken in the payload when it is available, or fallback to "none"
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await (verifyWallet as any)({
+    const result = await verifyWallet({
       signature,
       deviceToken: deviceToken || "none",
     }).unwrap()

@@ -10,6 +10,7 @@ export interface ApiPortfolioPosition {
     title: string
     displayImageUrl: string
     conditionId: string | null
+    winningOutcome?: string | null
   }
   token: {
     id: string

@@ -62,8 +62,7 @@ export function PublicLayout() {
 
       // Step B: Now check auth, passing the token if we have it
       if (magic && isMounted) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        void checkAuth(magic, dispatch, loginToBackend as any, fcmToken)
+        void checkAuth(magic, dispatch, loginToBackend, fcmToken)
       }
     }
 

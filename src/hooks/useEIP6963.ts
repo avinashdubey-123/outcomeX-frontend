@@ -8,8 +8,7 @@ export interface EIP6963ProviderInfo {
 }
 
 export interface EIP1193Provider {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  request(args: { method: string; params?: any[] }): Promise<any>
+  request(args: { method: string; params?: unknown[] }): Promise<unknown>
 }
 
 export interface EIP6963ProviderDetail {
@@ -27,9 +26,8 @@ export const useEIP6963 = () => {
   const [wallets, setWallets] = useState<EIP6963ProviderDetail[]>(providers)
 
   useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const onAnnounceProvider = (event: any) => {
-      const newProvider = (event as EIP6963AnnounceProviderEvent).detail
+    const onAnnounceProvider = (event: Event) => {
+      const newProvider = (event as unknown as EIP6963AnnounceProviderEvent).detail
       if (!providers.some((p) => p.info.uuid === newProvider.info.uuid)) {
         providers = [...providers, newProvider]
         setWallets([...providers])

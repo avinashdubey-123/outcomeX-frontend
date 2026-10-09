@@ -19,7 +19,11 @@ import type { TradeOrder } from "./TradeTypes"
 // ── Typed contract interfaces ─────────────────────────────────────────────────
 interface USDCContract extends ethers.BaseContract {
   allowance(owner: string, spender: string): Promise<bigint>
-  approve(spender: string, amount: bigint): Promise<ethers.ContractTransactionResponse>
+  approve(
+    spender: string,
+    amount: bigint,
+    overrides?: ethers.Overrides,
+  ): Promise<ethers.ContractTransactionResponse>
 }
 
 interface CTFContract extends ethers.BaseContract {
@@ -27,6 +31,7 @@ interface CTFContract extends ethers.BaseContract {
   setApprovalForAll(
     operator: string,
     approved: boolean,
+    overrides?: ethers.Overrides,
   ): Promise<ethers.ContractTransactionResponse>
 }
 
@@ -134,9 +139,8 @@ export const useTrade = () => {
     }
 
     const overrides = await getGasOverrides()
-    const usdc = new ethers.Contract(ADDRESSES.USDC, ERC20_ABI, signer)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const tx = await (usdc as any).approve(ADDRESSES.CTFExchange, ethers.MaxUint256, overrides)
+    const usdc = new ethers.Contract(ADDRESSES.USDC, ERC20_ABI, signer) as unknown as USDCContract
+    const tx = await usdc.approve(ADDRESSES.CTFExchange, ethers.MaxUint256, overrides)
     await tx.wait()
   }
 
@@ -156,9 +160,12 @@ export const useTrade = () => {
     }
 
     const overrides = await getGasOverrides()
-    const ctf = new ethers.Contract(ADDRESSES.ConditionalTokens, CTF_ABI, signer)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const tx = await (ctf as any).setApprovalForAll(ADDRESSES.CTFExchange, true, overrides)
+    const ctf = new ethers.Contract(
+      ADDRESSES.ConditionalTokens,
+      CTF_ABI,
+      signer,
+    ) as unknown as CTFContract
+    const tx = await ctf.setApprovalForAll(ADDRESSES.CTFExchange, true, overrides)
     await tx.wait()
   }
 
