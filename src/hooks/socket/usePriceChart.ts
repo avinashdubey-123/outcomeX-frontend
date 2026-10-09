@@ -12,7 +12,7 @@ export const TAB_INTERVAL: Record<ChartTab, string> = {
   "1D": "1d",
   "1W": "1w",
   "1M": "1m",
-  ALL: "1y",
+  ALL: "1m",
 }
 
 interface UsePriceChartOptions {

@@ -39,39 +39,120 @@ const TABS: ChartTab[] = ["1D", "1W", "1M", "ALL"]
 const GREEN = "#10d260"
 const RED = "#ea3943"
 
-// ── Tick label formatter per tab ──────────────────────────────────────────────
-// tickMarkType mirrors lightweight-charts' TickMarkType enum:
-//   0 = Year | 1 = Month | 2 = DayOfMonth | 3 = Time | 4 = TimeWithSeconds
-const getTickFormatter = (tab: ChartTab) => (time: number, tickMarkType: number) => {
+const getTickFormatter = (effectiveTab: ChartTab) => (time: number, tickMarkType: number) => {
+  // `time` has been shifted by tzOffset. If we format it as UTC, we get the exact Local time string.
   const d = new Date(time * 1000)
 
-  switch (tab) {
+  switch (effectiveTab) {
     case "1D":
-      // Intraday — every tick shows HH:mm
-      return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })
+      // Do not suppress ticks based on minutes, otherwise the axis can go blank
+      // if lightweight-charts decides to place all ticks on a half-hour mark.
+      return d.toLocaleTimeString("en-US", {
+        timeZone: "UTC",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      })
 
     case "1W":
-      // Week view — year/month boundaries → "Apr 2026", days → "Apr 14", time → "14:00"
-      if (tickMarkType <= 1)
-        return d.toLocaleDateString("en-US", { month: "short", year: "numeric" })
-      if (tickMarkType === 2)
-        return d.toLocaleDateString("en-US", { month: "short", day: "numeric" })
-      return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })
+      // tickMarkType 3 is intraday. Suppress it so we only get one label per day.
+      if (tickMarkType >= 3) return ""
+      return d.toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" })
 
     case "1M":
-      // Month view — year/month boundaries → "Apr 2026", days → "Apr 14"
-      if (tickMarkType <= 1)
-        return d.toLocaleDateString("en-US", { month: "short", year: "numeric" })
-      return d.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+      if (tickMarkType >= 3) return ""
+      return d.toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" })
 
-    case "ALL":
-      // Year view — year boundary → "2026", month ticks → "Apr '26"
-      if (tickMarkType === 0) return d.getFullYear().toString()
-      return d.toLocaleDateString("en-US", { month: "short", year: "2-digit" })
+    case "ALL": {
+      if (tickMarkType >= 2) return ""
+      return d.toLocaleDateString("en-US", { timeZone: "UTC", month: "short" })
+    }
 
     default:
-      return d.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+      return ""
   }
+}
+
+function buildContinuousPriceData(history: OhlcCandle[], tab: ChartTab) {
+  if (history.length === 0) return { chartData: [], effectiveTab: tab }
+
+  const sorted = [...history].sort((a, b) => a.time - b.time)
+
+  const now = new Date()
+  const nowSecs = Math.floor(now.getTime() / 1000)
+
+  const marketStartSecs = sorted[0]!.time
+  const spanDays = Math.max(1, Math.round((nowSecs - marketStartSecs) / 86400))
+
+  // Dynamically adapt grid density and labels to perfectly match the market's age.
+  // If a market is only 1 day old, viewing "1W" or "1M" or "ALL" should just look like "1D".
+  let effectiveTab = tab
+  if (tab === "ALL") effectiveTab = "1M"
+
+  if (spanDays <= 2) {
+    effectiveTab = "1D"
+  } else if (spanDays <= 7 && effectiveTab === "1M") {
+    effectiveTab = "1W"
+  }
+
+  // ── Window boundaries ───────────────────────────────────────────────────────
+  let windowStart = new Date()
+  windowStart.setHours(0, 0, 0, 0) // midnight today
+
+  if (effectiveTab === "1W") {
+    windowStart.setDate(windowStart.getDate() - 7)
+  } else if (effectiveTab === "1M") {
+    windowStart.setDate(windowStart.getDate() - 28)
+  }
+
+  // CRITICAL: Clamp windowStart so we NEVER draw flat lines before the market existed!
+  const marketStart = new Date(marketStartSecs * 1000)
+  if (windowStart.getTime() < marketStart.getTime()) {
+    windowStart = marketStart
+  }
+  const leftPaddingSecs =
+    effectiveTab === "1D" ? 30 * 60 : effectiveTab === "ALL" ? 86400 : 6 * 3600
+  const windowStartSecs = Math.floor(windowStart.getTime() / 1000)
+  const paddedStart = windowStartSecs - leftPaddingSecs
+
+  const rightPaddingSecs = effectiveTab === "1D" ? 30 * 60 : 6 * 3600
+  const windowEnd = nowSecs + rightPaddingSecs
+
+  let stepSecs: number
+  if (effectiveTab === "1D") stepSecs = 10 * 60
+  else if (effectiveTab === "1W") stepSecs = 3600
+  else if (effectiveTab === "1M") stepSecs = 4 * 3600
+  else stepSecs = 4 * 3600
+
+  // ── Build grid + carry forward prices ──────────────────────────────────────
+  // ONLY emit grid timestamps — never raw observation timestamps.
+  // Real observations update lastKnownPrice as we sweep past them, so the
+  // price value at each grid slot is always exactly correct.
+  // This guarantees equal physical spacing between every plotted point.
+
+  let realIdx = 0
+  let lastKnownPrice = sorted[0]!.close
+
+  // Seed lastKnownPrice from any real observations before the padded start
+  while (realIdx < sorted.length && sorted[realIdx]!.time < paddedStart) {
+    lastKnownPrice = sorted[realIdx]!.close
+    realIdx++
+  }
+
+  const result: { time: string; value: number }[] = []
+  const tzOffset = new Date().getTimezoneOffset() * 60 // seconds
+
+  for (let t = paddedStart; t <= windowEnd; t += stepSecs) {
+    // Absorb all real observations up to this grid slot
+    while (realIdx < sorted.length && sorted[realIdx]!.time <= t) {
+      lastKnownPrice = sorted[realIdx]!.close
+      realIdx++
+    }
+    // Shift timestamps by tzOffset so lightweight-charts aligns its UTC boundaries to Local time!
+    result.push({ time: (t - tzOffset) as unknown as string, value: lastKnownPrice })
+  }
+
+  return { chartData: result, effectiveTab }
 }
 
 export const PriceChart = memo(
@@ -127,9 +208,22 @@ export const PriceChart = memo(
           borderColor: "rgba(255,255,255,0.05)",
           timeVisible: true,
           secondsVisible: false,
-          fixLeftEdge: true,
-          fixRightEdge: true,
-          tickMarkFormatter: getTickFormatter(tab),
+          fixLeftEdge: false,
+          fixRightEdge: false,
+          // tickMarkFormatter will be assigned in useEffect
+        },
+        localization: {
+          timeFormatter: (time: number) => {
+            const d = new Date(time * 1000)
+            return d.toLocaleString("en-US", {
+              timeZone: "UTC",
+              month: "short",
+              day: "numeric",
+              hour: "numeric",
+              minute: "2-digit",
+              hour12: true,
+            })
+          },
         },
         rightPriceScale: {
           borderColor: "rgba(255,255,255,0.05)",
@@ -146,6 +240,7 @@ export const PriceChart = memo(
         topColor: "rgba(16,210,96,0.18)",
         bottomColor: "rgba(16,210,96,0)",
         lineWidth: 2,
+        lineType: 1, // LineType.WithSteps
         priceFormat: {
           type: "custom",
           formatter: (v: number) => `${(v * 100).toFixed(1)}¢`,
@@ -186,11 +281,12 @@ export const PriceChart = memo(
         if (dateEl) {
           const d = new Date((param.time as number) * 1000)
           dateEl.textContent = d.toLocaleString("en-US", {
+            timeZone: "UTC",
             month: "short",
             day: "numeric",
             hour: "2-digit",
             minute: "2-digit",
-            hour12: false,
+            hour12: true,
           })
         }
 
@@ -220,7 +316,6 @@ export const PriceChart = memo(
         seriesRef.current = null
       }
       // `tab` omitted intentionally — formatter updates are handled by useEffect([tab])
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [height])
 
     // ── Feed data into the chart whenever history changes ─────────────────────
@@ -231,29 +326,18 @@ export const PriceChart = memo(
       }
       if (history.length === 0) return
 
-      // lightweight-charts requires strictly ascending time values
-      const sorted = [...history].sort((a, b) => a.time - b.time)
-
-      const chartData = sorted.map((c) => ({
-        time: c.time as unknown as string,
-        value: c.close, // line chart uses close price from OHLC
-      }))
+      const { chartData, effectiveTab } = buildContinuousPriceData(history, tab)
 
       try {
+        chartRef.current?.applyOptions({
+          timeScale: { tickMarkFormatter: getTickFormatter(effectiveTab) },
+        })
         seriesRef.current.setData(chartData)
         chartRef.current?.timeScale().fitContent()
       } catch (err) {
         console.error("[PriceChart] setData threw an error:", err)
       }
-    }, [history])
-
-    // ── Update tick formatter when tab changes ─────────────────────────────────
-    useEffect(() => {
-      if (!chartRef.current) return
-      chartRef.current.applyOptions({
-        timeScale: { tickMarkFormatter: getTickFormatter(tab) },
-      })
-    }, [tab])
+    }, [history, tab])
 
     // ── candle_close → append finalised candle directly, no full setData ───────
     useEffect(() => {
@@ -261,8 +345,9 @@ export const PriceChart = memo(
       const candle = closedCandles[closedCandles.length - 1]
       if (!candle) return
       try {
+        const tzOffset = new Date().getTimezoneOffset() * 60
         seriesRef.current.update({
-          time: candle.time as unknown as string,
+          time: (candle.time - tzOffset) as unknown as string,
           value: candle.close,
         } as SingleValueData)
       } catch (err) {
@@ -274,8 +359,9 @@ export const PriceChart = memo(
     useEffect(() => {
       if (!seriesRef.current || !liveCandle) return
       try {
+        const tzOffset = new Date().getTimezoneOffset() * 60
         seriesRef.current.update({
-          time: liveCandle.time as unknown as string,
+          time: (liveCandle.time - tzOffset) as unknown as string,
           value: liveCandle.close,
         } as SingleValueData)
       } catch (err) {

@@ -84,7 +84,7 @@ const marketApi = secondApi.injectEndpoints({
     // GET ALL MARKETS
     // ─────────────────────────────────────────────
     getMarkets: builder.query<Market[], void>({
-      query: () => "/v1/user/marketplace",
+      query: () => "/v1/user/marketplace?limit=100",
 
       transformResponse: (res: ApiMarketListResponse): Market[] =>
         res.data.data.map(mapApiMarketToMarket),

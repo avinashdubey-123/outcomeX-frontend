@@ -1,21 +1,58 @@
 import { Bookmark, ChevronRight, Gift, RefreshCcw } from "lucide-react"
-import { type FC } from "react"
+import { type FC, useMemo } from "react"
 import { useSelector } from "react-redux"
 
 import { IcoAI } from "@/components/custom/IcoAI"
 import { MyCarousel } from "@/components/custom/MyCarousel"
+import { FeaturedPredictionCarousel } from "@/components/home/FeaturedPredictionCard"
 import { HeroBanner } from "@/components/layout/HeroBanner"
 import { MarketGrid } from "@/components/market/MarketGrid"
-import { selectAllMarkets, selectNewMarkets } from "@/features/markets/marketSelectors"
+import { useGetCategoriesQuery } from "@/features/api/category/categoryApi"
+import {
+  selectAllMarkets,
+  selectMarketsLoading,
+  selectNewMarkets,
+} from "@/features/markets/marketSelectors"
 import type { Market } from "@/features/markets/types"
 import { MOCK_MARKETS } from "@/mocks/mockData"
+
+const FEATURED_CATEGORY_INDEXES: Record<string, number> = {
+  Crypto: 0,
+  Politics: 0,
+  Sports: 0,
+  "Pop Culture": 0,
+  Business: 0,
+}
 
 const Home: FC = () => {
   // const trendingMarkets = useSelector(selectTrendingMarkets)
   // const filteredMarkets = useSelector(selectFilteredMarkets)
   const allMarkets = useSelector(selectAllMarkets)
   const newMarkets = useSelector(selectNewMarkets)
+  const isLoadingMarkets = useSelector(selectMarketsLoading)
   const mainHeroMarket = MOCK_MARKETS[0]
+
+  const { data: categories, isLoading: isCategoriesLoading } = useGetCategoriesQuery()
+
+  const featuredMarkets = useMemo(() => {
+    if (!categories) return []
+    return categories
+      .map((cat) => {
+        const categoryMarkets = allMarkets.filter(
+          (m) => m.category?.toLowerCase() === cat.name?.toLowerCase(),
+        )
+        if (categoryMarkets.length > 0) {
+          // Find matching key case-insensitively or default to 0
+          const configKey = Object.keys(FEATURED_CATEGORY_INDEXES).find(
+            (k) => k.toLowerCase() === cat.name?.toLowerCase(),
+          )
+          const idx = configKey ? (FEATURED_CATEGORY_INDEXES[configKey] ?? 0) : 0
+          return categoryMarkets[idx % categoryMarkets.length]!
+        }
+        return null
+      })
+      .filter(Boolean) as Market[]
+  }, [allMarkets, categories])
   const carouselItems = MOCK_MARKETS.filter((_, i) => i < 5)
 
   function renderHeroBanner(item: Market, index: number): React.ReactNode {
@@ -35,7 +72,11 @@ const Home: FC = () => {
     <div className="bg-background text-white selection:bg-primary/30">
       {/* {userLoading && <AuthLoader />} */}
 
-      <main className="container pb-12">
+      <main className="container pb-12 pt-8">
+        <FeaturedPredictionCarousel
+          markets={featuredMarkets}
+          isLoading={isLoadingMarkets || isCategoriesLoading}
+        />
         {mainHeroMarket && <MyCarousel items={carouselItems} renderItem={renderHeroBanner} />}
         <MarketGrid title="NEW MARKETS" markets={newMarkets.slice(0, 4)} groupKey={`new_market`} />
         <MarketGrid

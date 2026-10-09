@@ -11,6 +11,7 @@ export const ToastProvider: FC = () => (
     offset={{ top: 20, right: 20 }}
     visibleToasts={5}
     expand={true}
+    closeButton={true}
     toastOptions={{
       classNames: {
         toast: "app-toast-notification",
