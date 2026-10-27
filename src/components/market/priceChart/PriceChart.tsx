@@ -318,7 +318,12 @@ export const PriceChart = memo(
       // `tab` omitted intentionally — formatter updates are handled by useEffect([tab])
     }, [height])
 
-    // ── Feed data into the chart whenever history changes ─────────────────────
+    // ── Feed data into the chart whenever history or live socket candles change ──
+    // The grid from buildContinuousPriceData extends past "now", so series.update()
+    // with a live candle would be older than the last point and throw. Instead we
+    // fold socket candles into the history and rebuild via setData.
+    const fittedKeyRef = useRef<{ history: OhlcCandle[]; tab: ChartTab } | null>(null)
+
     useEffect(() => {
       if (!seriesRef.current) {
         console.warn("[PriceChart] seriesRef is null — chart not ready yet, cannot set data")
@@ -326,48 +331,28 @@ export const PriceChart = memo(
       }
       if (history.length === 0) return
 
-      const { chartData, effectiveTab } = buildContinuousPriceData(history, tab)
+      const byTime = new Map(history.map((c) => [c.time, c]))
+      for (const c of closedCandles) byTime.set(c.time, c)
+      if (liveCandle) byTime.set(liveCandle.time, liveCandle)
+
+      const { chartData, effectiveTab } = buildContinuousPriceData([...byTime.values()], tab)
 
       try {
         chartRef.current?.applyOptions({
           timeScale: { tickMarkFormatter: getTickFormatter(effectiveTab) },
         })
         seriesRef.current.setData(chartData)
-        chartRef.current?.timeScale().fitContent()
+
+        // Only re-fit on history/tab changes so live ticks don't reset the user's zoom
+        const last = fittedKeyRef.current
+        if (!last || last.history !== history || last.tab !== tab) {
+          chartRef.current?.timeScale().fitContent()
+          fittedKeyRef.current = { history, tab }
+        }
       } catch (err) {
         console.error("[PriceChart] setData threw an error:", err)
       }
-    }, [history, tab])
-
-    // ── candle_close → append finalised candle directly, no full setData ───────
-    useEffect(() => {
-      if (!seriesRef.current || closedCandles.length === 0) return
-      const candle = closedCandles[closedCandles.length - 1]
-      if (!candle) return
-      try {
-        const tzOffset = new Date().getTimezoneOffset() * 60
-        seriesRef.current.update({
-          time: (candle.time - tzOffset) as unknown as string,
-          value: candle.close,
-        } as SingleValueData)
-      } catch (err) {
-        console.error("[PriceChart] series.update (candle_close) error:", err)
-      }
-    }, [closedCandles])
-
-    // ── candle_update → update the live forming candle directly ────────────────
-    useEffect(() => {
-      if (!seriesRef.current || !liveCandle) return
-      try {
-        const tzOffset = new Date().getTimezoneOffset() * 60
-        seriesRef.current.update({
-          time: (liveCandle.time - tzOffset) as unknown as string,
-          value: liveCandle.close,
-        } as SingleValueData)
-      } catch (err) {
-        console.error("[PriceChart] series.update (candle_update) error:", err)
-      }
-    }, [liveCandle])
+    }, [history, tab, closedCandles, liveCandle])
 
     // Socket data is the freshest source — use it for the header price when
     // available so it updates in real-time without waiting for a REST refetch.

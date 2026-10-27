@@ -313,7 +313,7 @@ const EventPage = () => {
             </div>
             {/* ══ END LEFT ══ */}
 
-            {import.meta.env.DEV ? (
+            {import.meta.env.MODE !== "production" ? (
               <TokenBalanceChecker
                 yesTokenOnChainId={market.yesTokenOnChainId ?? null}
                 noTokenOnChainId={market.noTokenOnChainId ?? null}
@@ -394,7 +394,7 @@ const EventPage = () => {
               ) : (
                 <TradePanel
                   yesProbability={finalPrice ?? 50}
-                  noProbability={finalPrice ? 1 - finalPrice : 50}
+                  noProbability={finalPrice ? 100 - finalPrice : 50}
                   isCrypto={false}
                   onLoginRequired={() => setIsLoginOpen(true)}
                   onDepositRequired={() => magic?.wallet?.showUI()}

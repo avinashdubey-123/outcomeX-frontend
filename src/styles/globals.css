@@ -139,6 +139,10 @@
   *::after {
     @apply border-border;
   }
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-muted-foreground) var(--color-muted);
+  }
 
   body {
     @apply bg-background text-white;

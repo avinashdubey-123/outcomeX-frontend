@@ -38,9 +38,9 @@ export const Footer = () => {
     <footer className="border-t border-border bg-background mt-auto">
       <div className="container py-12 flex flex-col gap-12 justify-between">
         {/* ── Top section ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 ">
+        <div className="flex flex-col md:flex-row md:justify-between gap-8">
           {/* Brand */}
-          <div className="flex flex-col gap-4 sm:col-span-2 max-w-lg">
+          <div className="flex flex-col gap-4 max-w-lg">
             <div
               className="flex items-center gap-2 cursor-pointer w-fit"
               onClick={() => navigate("/")}
@@ -54,16 +54,18 @@ export const Footer = () => {
           </div>
 
           {/* Link groups — rendered from footerData.ts */}
-          {FOOTER_GROUPS.map((group) => (
-            <div key={group.heading} className="flex flex-col gap-3">
-              <span className="font-sm font-bold tracking-widest text-white uppercase">
-                {group.heading}
-              </span>
-              {group.links.map((link) => (
-                <FooterLinkBtn key={link.label} link={link} />
-              ))}
-            </div>
-          ))}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 md:gap-16">
+            {FOOTER_GROUPS.map((group) => (
+              <div key={group.heading} className="flex flex-col gap-3">
+                <span className="font-sm font-bold tracking-widest text-white uppercase">
+                  {group.heading}
+                </span>
+                {group.links.map((link) => (
+                  <FooterLinkBtn key={link.label} link={link} />
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* ── Bottom bar ── */}
