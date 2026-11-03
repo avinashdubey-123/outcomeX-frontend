@@ -11,7 +11,7 @@ const FooterLinkBtn = ({ link }: { link: FooterLink }) => {
 
   const handleClick = () => {
     if (link.external) {
-      window.open(link.external, "_blank", "noopener noreferrer")
+      window.open(link.external, "_blank", "noopener,noreferrer")
     } else if (link.path) {
       navigate(link.path)
     } else if (link.slug) {

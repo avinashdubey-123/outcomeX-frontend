@@ -26,7 +26,7 @@ export const FOOTER_GROUPS: FooterGroup[] = [
   {
     heading: "Support",
     links: [
-      { label: "Discord Community", external: "https://discord.gg/jayKoranga" },
+      { label: "Discord Community", external: "https://discord.com/invite/outcomeX" },
       { label: "Help Center", slug: "help" },
       { label: "Terms of Service", path: "/terms" },
     ],

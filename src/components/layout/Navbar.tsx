@@ -17,7 +17,7 @@ import {
   X,
   Zap,
 } from "lucide-react"
-import { type FC, useEffect, useRef, useState } from "react"
+import { type FC, useEffect, useMemo, useRef, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { useLocation, useNavigate } from "react-router"
 
@@ -26,6 +26,7 @@ import { LoginModal } from "@/components/auth/LoginModal"
 import { Button } from "@/components/ui/button"
 import { ROUTES } from "@/constants/routes"
 import { useLogoutMutation } from "@/features/api/auth/authApi"
+import { useGetCategoriesQuery } from "@/features/api/category/categoryApi"
 import { secondApi } from "@/features/api/secondApi"
 import {
   loadingFalse,
@@ -339,15 +340,29 @@ const SearchBarMobile = ({ onSearch }: { onSearch: () => void; onClose: () => vo
 
 const NAV_LINKS = [
   { label: "Trending", path: "/markets/trending" },
-  { label: "Breaking", path: "/markets/category/Breaking" },
+  { label: "Breaking", path: "/markets/breaking" },
   { label: "New", path: "/markets/new_market" },
+]
+
+// Shown under "More" when the categories API has not returned two categories yet.
+const FALLBACK_MORE_LINKS = [
   { label: "Hollywood", path: "/markets/category/Hollywood" },
   { label: "Awards", path: "/markets/category/Awards" },
 ]
 
+const MORE_LINK_COUNT = 2
+
 // ── Main Navbar ───────────────────────────────────────────────────────────────
 export const Navbar: FC = () => {
   const dispatch = useDispatch()
+  const { data: apiCategories } = useGetCategoriesQuery()
+  const moreLinks = useMemo(() => {
+    const fromApi = (apiCategories ?? []).slice(0, MORE_LINK_COUNT).map((c) => ({
+      label: c.name,
+      path: `/markets/category/${encodeURIComponent(c.name)}`,
+    }))
+    return fromApi.length === MORE_LINK_COUNT ? fromApi : FALLBACK_MORE_LINKS
+  }, [apiCategories])
   const { magic } = useMagic()
   const isAuthenticated = useSelector(selectIsAuthenticated)
   const { email, publicAddress } = useSelector(selectUserData)
@@ -555,7 +570,7 @@ export const Navbar: FC = () => {
 
           {/* NAVIGATION */}
           <SectionHeader title="Navigation" />
-          {NAV_LINKS.map((link) => (
+          {[...NAV_LINKS, ...moreLinks].map((link) => (
             <SidebarItem
               key={link.path}
               icon={NAV_ICONS[link.label]}
@@ -653,10 +668,10 @@ export const Navbar: FC = () => {
                   Trending
                 </button>
                 <button
-                  className={`transition-colors cursor-pointer hover:text-white ${location.pathname === "/markets/category/Breaking" ? "text-white" : "text-secondary"}`}
+                  className={`transition-colors cursor-pointer hover:text-white ${location.pathname === "/markets/breaking" ? "text-white" : "text-secondary"}`}
                   onClick={(e) => {
                     e.stopPropagation()
-                    navigate("/markets/category/Breaking")
+                    navigate("/markets/breaking")
                   }}
                 >
                   Breaking
@@ -679,8 +694,7 @@ export const Navbar: FC = () => {
                     }}
                     className={`flex items-center gap-1 cursor-pointer transition-colors hover:text-white ml-0 ${
                       activeDropdown === "more" ||
-                      location.pathname === "/markets/category/Hollywood" ||
-                      location.pathname === "/markets/category/Awards"
+                      moreLinks.some((link) => location.pathname === link.path)
                         ? "text-white"
                         : "text-secondary"
                     }`}
@@ -697,22 +711,26 @@ export const Navbar: FC = () => {
                       onClose={() => dispatch(clearActiveDropdown())}
                       className="w-48 md:left-0 md:mt-2.5 cursor-pointer"
                     >
-                      <MenuItem
-                        label="Hollywood"
-                        active={location.pathname === "/markets/category/Hollywood"}
-                        onClick={() => {
-                          dispatch(clearActiveDropdown())
-                          navigate("/markets/category/Hollywood")
-                        }}
-                      />
-                      <MenuItem
-                        label="Awards"
-                        active={location.pathname === "/markets/category/Awards"}
-                        onClick={() => {
-                          dispatch(clearActiveDropdown())
-                          navigate("/markets/category/Awards")
-                        }}
-                      />
+                      {moreLinks.map((link) => {
+                        const isActive = location.pathname === link.path
+                        return (
+                          <button
+                            key={link.path}
+                            onClick={() => {
+                              dispatch(clearActiveDropdown())
+                              navigate(link.path)
+                            }}
+                            className={`relative flex w-full cursor-pointer items-center whitespace-nowrap px-5 py-2.5 font-base font-bold uppercase transition-colors duration-200 hover:bg-white/5 ${
+                              isActive ? "text-[#f1f8f4]" : "text-secondary hover:text-white"
+                            }`}
+                          >
+                            {link.label}
+                            {isActive && (
+                              <div className="absolute left-0 top-0 h-full w-0.5 bg-[#00c853] shadow-[0_0_8px_rgba(0,200,83,0.5)]" />
+                            )}
+                          </button>
+                        )
+                      })}
                     </Dropdown>
                   )}
                 </div>

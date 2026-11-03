@@ -1,5 +1,5 @@
 import { CheckCircle, TrendingUp } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useSelector } from "react-redux"
 import { useParams } from "react-router"
 import { toast } from "sonner"
@@ -30,6 +30,7 @@ import { usePriceChart } from "@/hooks/socket/usePriceChart"
 import type { TradeOrder, TradePanelOrder } from "@/hooks/trade/TradeTypes"
 import { useTrade } from "@/hooks/trade/useTrade"
 import { formatMarketDate } from "@/libs/formatDate"
+import { generateMockCandles } from "@/mocks/mockPriceHistory"
 
 type TabKey = "rules" | "activity" | "orderbook" | "comments"
 
@@ -81,9 +82,33 @@ const EventPage = () => {
   const market = apiMarket ?? (isError ? reduxMarket : null)
 
   // ── Chart state ────────────────────────────────────────────────────────────
-  const { tab, history, changeTab, lastPrice, pctChange, isPositive, isFetching } = usePriceChart({
+  const {
+    tab,
+    history: apiHistory,
+    changeTab,
+    lastPrice: apiLastPrice,
+    pctChange: apiPctChange,
+    isPositive: apiIsPositive,
+    isFetching: apiIsFetching,
+  } = usePriceChart({
     optionGroupId: market?.optionGroupId ?? "",
   })
+
+  // Mock markets (opened from the home hero banner) have no backend history, so chart mock data for them.
+  const isMockMarket = !apiMarket && !!market
+  const mockHistory = useMemo(
+    () => (isMockMarket ? generateMockCandles(market.id, tab, market.yesProbability / 100) : []),
+    [isMockMarket, market, tab],
+  )
+  const history = isMockMarket ? mockHistory : apiHistory
+  const mockFirstClose = mockHistory[0]?.close ?? 0
+  const mockLastClose = mockHistory[mockHistory.length - 1]?.close ?? 0
+  const mockPctChange =
+    mockFirstClose > 0 ? ((mockLastClose - mockFirstClose) / mockFirstClose) * 100 : 0
+  const lastPrice = isMockMarket ? mockLastClose : apiLastPrice
+  const pctChange = isMockMarket ? mockPctChange : apiPctChange
+  const isPositive = isMockMarket ? mockPctChange >= 0 : apiIsPositive
+  const isFetching = isMockMarket ? false : apiIsFetching
 
   // ── Resolution check ───────────────────────────────────────────────────────
   // Use the backend status field — RESOLVED (11) or PAIDOUT (12) mean the

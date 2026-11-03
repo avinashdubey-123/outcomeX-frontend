@@ -87,7 +87,8 @@ function buildContinuousPriceData(history: OhlcCandle[], tab: ChartTab) {
   // Dynamically adapt grid density and labels to perfectly match the market's age.
   // If a market is only 1 day old, viewing "1W" or "1M" or "ALL" should just look like "1D".
   let effectiveTab = tab
-  if (tab === "ALL") effectiveTab = "1M"
+  // ALL shows the full history once the market is older than the 1M window
+  if (tab === "ALL" && spanDays <= 28) effectiveTab = "1M"
 
   if (spanDays <= 2) {
     effectiveTab = "1D"
@@ -99,10 +100,15 @@ function buildContinuousPriceData(history: OhlcCandle[], tab: ChartTab) {
   let windowStart = new Date()
   windowStart.setHours(0, 0, 0, 0) // midnight today
 
-  if (effectiveTab === "1W") {
+  if (effectiveTab === "1D") {
+    // Rolling last 24 hours, so the day view is never nearly empty just after midnight
+    windowStart = new Date((nowSecs - 86400) * 1000)
+  } else if (effectiveTab === "1W") {
     windowStart.setDate(windowStart.getDate() - 7)
   } else if (effectiveTab === "1M") {
     windowStart.setDate(windowStart.getDate() - 28)
+  } else if (effectiveTab === "ALL") {
+    windowStart = new Date(marketStartSecs * 1000)
   }
 
   // CRITICAL: Clamp windowStart so we NEVER draw flat lines before the market existed!
@@ -113,7 +119,7 @@ function buildContinuousPriceData(history: OhlcCandle[], tab: ChartTab) {
   const leftPaddingSecs =
     effectiveTab === "1D" ? 30 * 60 : effectiveTab === "ALL" ? 86400 : 6 * 3600
   const windowStartSecs = Math.floor(windowStart.getTime() / 1000)
-  const paddedStart = windowStartSecs - leftPaddingSecs
+  const rawPaddedStart = windowStartSecs - leftPaddingSecs
 
   const rightPaddingSecs = effectiveTab === "1D" ? 30 * 60 : 6 * 3600
   const windowEnd = nowSecs + rightPaddingSecs
@@ -122,7 +128,11 @@ function buildContinuousPriceData(history: OhlcCandle[], tab: ChartTab) {
   if (effectiveTab === "1D") stepSecs = 10 * 60
   else if (effectiveTab === "1W") stepSecs = 3600
   else if (effectiveTab === "1M") stepSecs = 4 * 3600
-  else stepSecs = 4 * 3600
+  else stepSecs = 12 * 3600
+
+  // Snap the grid to round local times (e.g. 12:00, not 12:03) so axis labels and tooltips are tidy.
+  const tzOffset = new Date().getTimezoneOffset() * 60 // seconds
+  const paddedStart = Math.floor((rawPaddedStart - tzOffset) / stepSecs) * stepSecs + tzOffset
 
   // ── Build grid + carry forward prices ──────────────────────────────────────
   // ONLY emit grid timestamps — never raw observation timestamps.
@@ -140,7 +150,6 @@ function buildContinuousPriceData(history: OhlcCandle[], tab: ChartTab) {
   }
 
   const result: { time: string; value: number }[] = []
-  const tzOffset = new Date().getTimezoneOffset() * 60 // seconds
 
   for (let t = paddedStart; t <= windowEnd; t += stepSecs) {
     // Absorb all real observations up to this grid slot

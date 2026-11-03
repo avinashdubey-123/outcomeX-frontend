@@ -69,6 +69,21 @@ const canRedeem = (pos: Position): boolean =>
 const isLost = (pos: Position): boolean =>
   pos.isResolved && pos.winningOutcome !== null && pos.winningOutcome !== pos.side
 
+const hasKnownWinner = (pos: Position): boolean => pos.isResolved && pos.winningOutcome !== null
+
+// Never print the winner when the API did not provide one (avoids "Resolved · null won").
+const getResolutionLabel = (pos: Position): string => {
+  if (!hasKnownWinner(pos)) return "Resolved"
+  const label = `Resolved · ${pos.winningOutcome} won`
+  return canRedeem(pos) ? `${label} ✓` : label
+}
+
+// Settled price per share: 100¢ for the winning side, 0¢ for the losing side, unknown otherwise.
+const getSettledPriceLabel = (pos: Position): string => {
+  if (!hasKnownWinner(pos)) return "—"
+  return pos.winningOutcome === pos.side ? "100¢" : "0¢"
+}
+
 // ── Sub-components ────────────────────────────────────────────────────────────
 const ColHeader = ({ children, align = "left" }: { children: React.ReactNode; align?: string }) => (
   <div
@@ -334,11 +349,7 @@ const PositionRow = ({
                     : PORTFOLIO_COLORS.TEXT_MUTED_2,
               }}
             >
-              {position.isRedeemed
-                ? "Resolved"
-                : canRedeem(position)
-                  ? `Resolved · ${position.winningOutcome} won ✓`
-                  : `Resolved · ${position.winningOutcome} won`}
+              {getResolutionLabel(position)}
             </span>
           )}
         </div>
@@ -360,7 +371,9 @@ const PositionRow = ({
       {/* now price */}
       <div className="font-sm text-white/80 text-center">
         {position.isResolved ? (
-          <span style={{ color: PORTFOLIO_COLORS.TEXT_MUTED_2 }}>Resolved</span>
+          <span style={{ color: PORTFOLIO_COLORS.TEXT_MUTED_2 }}>
+            {getSettledPriceLabel(position)}
+          </span>
         ) : (
           `${position.nowPrice.toFixed(2)}¢`
         )}

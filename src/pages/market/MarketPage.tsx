@@ -18,18 +18,25 @@ import {
   useSearchMarketsQuery,
 } from "@/features/api/markets/marketApi"
 import {
-  selectAllMarkets,
-  selectNewMarkets,
-  selectTrendingMarkets,
-} from "@/features/markets/marketSelectors"
+  byNewest,
+  byVolume,
+  type CategoryMarkets,
+  groupByCategory,
+  selectEndingSoon,
+} from "@/features/markets/marketGroups"
+import { selectAllMarkets, selectTrendingMarkets } from "@/features/markets/marketSelectors"
 import { setSelectedCategoryById, setSelectedCategoryByName } from "@/features/markets/marketSlice"
 import type { Market } from "@/features/markets/types"
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const KNOWN_GROUPS = new Set(["trending", "ending_soon", "new_market", "earn_rewards"])
+const KNOWN_GROUPS = new Set(["trending", "breaking", "ending_soon", "new_market", "earn_rewards"])
+
+// Groups that render a few markets per category instead of one flat list.
+const PER_CATEGORY_GROUPS = new Set(["trending", "breaking", "new_market"])
 
 const GROUP_TITLES: Record<string, string> = {
   trending: "Trending Markets",
+  breaking: "Breaking Markets",
   ending_soon: "Ending Soon",
   new_market: "New Markets",
   earn_rewards: "Earn Rewards",
@@ -44,7 +51,6 @@ const MarketsPage = () => {
 
   // ── Redux market lists (from initial home page fetch) ──────────────────────
   const trending = useSelector(selectTrendingMarkets)
-  const newMarkets = useSelector(selectNewMarkets)
   const allMarkets = useSelector(selectAllMarkets)
 
   // ── Mode detection ─────────────────────────────────────────────────────────
@@ -96,10 +102,11 @@ const MarketsPage = () => {
     }
     if (isGroup) {
       const groupMap: Record<string, Market[]> = {
-        trending,
-        new_market: newMarkets,
-        ending_soon: allMarkets,
-        earn_rewards: allMarkets,
+        trending: trending.length > 0 ? trending : allMarkets,
+        breaking: [...allMarkets].sort(byVolume),
+        new_market: [...allMarkets].sort(byNewest),
+        ending_soon: selectEndingSoon(allMarkets),
+        earn_rewards: [...allMarkets].sort(byVolume),
       }
       return groupMap[group ?? ""] ?? allMarkets
     }
@@ -111,12 +118,17 @@ const MarketsPage = () => {
     searchResults,
     categoryMarkets,
     trending,
-    newMarkets,
     allMarkets,
     group,
     isApiCategory,
     categoryName,
   ])
+
+  // Trending / Breaking / New: 4 markets from each category
+  const categorySections: CategoryMarkets[] | null = useMemo(() => {
+    if (isSearch || isCategory || !isGroup || !PER_CATEGORY_GROUPS.has(group ?? "")) return null
+    return groupByCategory(markets, group === "new_market" ? byNewest : byVolume)
+  }, [isSearch, isCategory, isGroup, group, markets])
 
   // ── Loading state ──────────────────────────────────────────────────────────
   const isLoading = (isCategory && isApiCategory && categoryLoading) || (isSearch && searchLoading)
@@ -145,7 +157,10 @@ const MarketsPage = () => {
         </div>
         {!isLoading && (
           <span className="font-base font-medium text-muted-foreground text-nowrap">
-            {markets.length} markets
+            {categorySections
+              ? categorySections.reduce((n, s) => n + s.markets.length, 0)
+              : markets.length}{" "}
+            markets
           </span>
         )}
       </div>
@@ -157,6 +172,21 @@ const MarketsPage = () => {
       ) : markets.length === 0 ? (
         <div className="text-center py-20 font-sm text-muted-foreground">
           {isSearch ? `No markets found for "${searchQuery}".` : "No markets found."}
+        </div>
+      ) : categorySections ? (
+        <div className="flex flex-col gap-8">
+          {categorySections.map(({ category: sectionName, markets: sectionMarkets }) => (
+            <section key={sectionName}>
+              <h2 className="mb-4 ml-1 font-base font-bold uppercase tracking-[2px] text-white">
+                {sectionName}
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {sectionMarkets.map((market) => (
+                  <BinaryMarketCard key={market.id} market={market} />
+                ))}
+              </div>
+            </section>
+          ))}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
