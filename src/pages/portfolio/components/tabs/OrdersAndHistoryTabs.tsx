@@ -238,7 +238,7 @@ const CancelButton = ({
     try {
       await cancelOrderApi(orderId).unwrap()
       onCancelled(orderId)
-      toast.success("Order cancelled")
+      toast.error("Order cancelled")
     } catch {
       toast.error("Failed to cancel order")
       setConfirm(false)

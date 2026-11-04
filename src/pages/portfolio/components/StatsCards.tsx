@@ -18,7 +18,7 @@ interface StatCardProps {
 
 const StatCard = ({ label, value, subValue, subColor, icon, iconBg, cardBg }: StatCardProps) => (
   <div
-    className="flex-1 border border-white/10 rounded-2xl py-5 px-6 flex flex-col gap-3 hover:translate-y-[-4px] hover:border-primary transition-all duration-200 ease-in-out cursor-pointer"
+    className="flex-1 border border-white/10 rounded-2xl py-5 px-6 flex flex-col gap-3"
     style={{ background: cardBg }}
   >
     {/* label + icon row */}

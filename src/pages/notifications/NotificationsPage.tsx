@@ -398,3 +398,21 @@ export default function NotificationsPage() {
     </div>
   )
 }
+
+// Shown by the route guard while the session is being restored, so the page frame stays on
+// screen instead of vanishing and re-rendering.
+export const NotificationsPageSkeleton = () => (
+  <div className="container mt-4 md:mt-6 mb-12 md:mb-18.5 text-white">
+    <div className="mb-6">
+      <h1 className="font-2xl font-bold text-white mb-1.5 tracking-tighter leading-tight">
+        Notifications
+      </h1>
+      <p className="font-default text-white/60">Manage your account activity and trade updates</p>
+    </div>
+    <div className="rounded-2xl border border-white/5 overflow-hidden bg-slate/30 shadow-2xl">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <RowSkeleton key={i} />
+      ))}
+    </div>
+  </div>
+)

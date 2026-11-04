@@ -56,7 +56,8 @@ const authSlice = createSlice({
       state.loginMethod = null
       state.token = null
       state.isAuthChecking = false
-      state.deviceToken = null
+      // deviceToken is intentionally kept: it identifies this browser, not the user. Clearing
+      // it made the next login (without a page reload) send "none" and lose push notifications.
     },
 
     loadingTrue(state) {

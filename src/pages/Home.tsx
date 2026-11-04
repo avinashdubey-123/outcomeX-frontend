@@ -4,15 +4,17 @@ import { useSelector } from "react-redux"
 import { MyCarousel } from "@/components/custom/MyCarousel"
 import { FeaturedPredictionCarousel } from "@/components/home/FeaturedPredictionCard"
 import { HeroBanner } from "@/components/layout/HeroBanner"
-import { MarketGrid } from "@/components/market/MarketGrid"
+import { MarketGrid, MarketGridSectionSkeleton } from "@/components/market/MarketGrid"
+import { LazyMount } from "@/components/ui/LazyMount"
 import { useGetCategoriesQuery } from "@/features/api/category/categoryApi"
+import { useGetMarketsQuery } from "@/features/api/markets/marketApi"
 import {
   byNewest,
   byVolume,
   pickDistinctSections,
   selectEndingSoon,
 } from "@/features/markets/marketGroups"
-import { selectAllMarkets, selectMarketsLoading } from "@/features/markets/marketSelectors"
+import { selectAllMarkets } from "@/features/markets/marketSelectors"
 import type { Market } from "@/features/markets/types"
 import { MOCK_MARKETS } from "@/mocks/mockData"
 
@@ -31,7 +33,14 @@ const SECTION_ORDER = ["newMarkets", "endingSoon", "earnRewards"] as const
 
 const Home: FC = () => {
   const allMarkets = useSelector(selectAllMarkets)
-  const isLoadingMarkets = useSelector(selectMarketsLoading)
+
+  // The store's `markets.loading` flag is false until markets arrive, and the list is copied into
+  // the store in an effect after the fetch. Track the real fetch (same cache PublicLayout uses,
+  // no extra request) so there is no gap where "loading is done" but the list is still empty.
+  // That gap made the featured carousel vanish and the hero jump up, then drop back down.
+  const { data: fetchedMarkets, isLoading: isMarketsQueryLoading } = useGetMarketsQuery()
+  const isLoadingMarkets =
+    isMarketsQueryLoading || (!!fetchedMarkets?.length && allMarkets.length === 0)
 
   const { data: categories, isLoading: isCategoriesLoading } = useGetCategoriesQuery()
 
@@ -80,6 +89,10 @@ const Home: FC = () => {
     />
   )
 
+  // Placeholder for a below-the-fold section: same structure as the real one so nothing jumps.
+  const gridPlaceholder = <MarketGridSectionSkeleton />
+  const marketsPending = isLoadingMarkets
+
   return (
     <div className="bg-background text-white selection:bg-primary/30">
       <main className="container pb-12 pt-8">
@@ -87,18 +100,33 @@ const Home: FC = () => {
           markets={featuredMarkets}
           isLoading={isLoadingMarkets || isCategoriesLoading}
         />
+        {/* The hero is cheap static content, so it renders straight away: a placeholder would
+            have to guess its height, and every wrong guess shows up as a jump. */}
         <MyCarousel items={HERO_MARKETS} renderItem={renderHeroBanner} />
-        <MarketGrid title="NEW MARKETS" markets={sections.newMarkets} groupKey="new_market" />
-        <MarketGrid
-          title="All Ending Soon Markets"
-          markets={sections.endingSoon}
-          groupKey="ending_soon"
-        />
-        <MarketGrid
-          title="Earn Rewards for Supporting Market Activity"
-          markets={sections.earnRewards}
-          groupKey="earn_rewards"
-        />
+        {/* Below the fold: each grid mounts (and loads its prices) only when near view. */}
+        {marketsPending ? (
+          gridPlaceholder
+        ) : (
+          <>
+            <LazyMount placeholder={gridPlaceholder}>
+              <MarketGrid title="NEW MARKETS" markets={sections.newMarkets} groupKey="new_market" />
+            </LazyMount>
+            <LazyMount placeholder={gridPlaceholder}>
+              <MarketGrid
+                title="All Ending Soon Markets"
+                markets={sections.endingSoon}
+                groupKey="ending_soon"
+              />
+            </LazyMount>
+            <LazyMount placeholder={gridPlaceholder}>
+              <MarketGrid
+                title="Earn Rewards for Supporting Market Activity"
+                markets={sections.earnRewards}
+                groupKey="earn_rewards"
+              />
+            </LazyMount>
+          </>
+        )}
       </main>
     </div>
   )

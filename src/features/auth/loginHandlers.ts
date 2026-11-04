@@ -77,9 +77,9 @@ export async function handleEmailLogin({
         token: resultBackend.data.token,
       }),
     )
+    // Magic restores its own session on reload, so the backend token is not persisted here
+    // (only the MetaMask restore reads auth_token).
     localStorage.setItem("isSignedIn", "true")
-    localStorage.setItem("auth_token", resultBackend.data.token)
-    localStorage.setItem("auth_method", LOGIN_METHODS.Email)
 
     onSuccess()
   } catch (err) {
@@ -204,7 +204,7 @@ export async function handleInjectedLogin({
   } catch (err: unknown) {
     const e = err as { code?: number }
     if (e?.code === 4001 || e?.code === -32603) {
-      toast.info("Connection cancelled")
+      toast.error("Connection cancelled")
       onError()
       return
     }

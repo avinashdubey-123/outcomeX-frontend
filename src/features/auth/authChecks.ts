@@ -15,8 +15,8 @@ import { toast } from "sonner"
 
 import type { AppDispatch } from "@/app/store"
 import type { useLoginMutation } from "@/features/api/auth/authApi"
-import { loadingFalse, loadingTrue, login, triggerWalletRefresh } from "@/features/auth/authSlice"
-import { LOGIN_METHODS, type LoginMethod } from "@/features/auth/authTypes/loginMethodsTypes"
+import { loadingTrue, login, triggerWalletRefresh } from "@/features/auth/authSlice"
+import { LOGIN_METHODS } from "@/features/auth/authTypes/loginMethodsTypes"
 import { setActiveInjectedProvider } from "@/features/auth/lib/injectedProvider"
 import type { Magic } from "@/features/auth/lib/magic"
 import type { EIP1193Provider, EIP6963AnnounceProviderEvent } from "@/hooks/useEIP6963"
@@ -71,10 +71,9 @@ export async function checkGoogleRedirect(
         token: resultFromBackend.data.token,
       }),
     )
+    // Magic restores its own session on reload, so the backend token is not persisted here
+    // (only the MetaMask restore reads auth_token).
     localStorage.setItem("isSignedIn", "true")
-    localStorage.setItem("auth_token", resultFromBackend.data.token)
-    localStorage.setItem("auth_method", LOGIN_METHODS.Google)
-    localStorage.setItem("auth_address", publicAddress as string)
     dispatch(triggerWalletRefresh())
     return true
   } catch {
@@ -82,7 +81,8 @@ export async function checkGoogleRedirect(
     if (result && !resultFromBackend) {
       toast.error("Google login failed")
     }
-    dispatch(loadingFalse())
+    // Do not clear isAuthChecking here: this throws on every normal page load, and the
+    // remaining session checks must finish before route guards decide the user is logged out.
     return false
   }
 }
@@ -129,8 +129,6 @@ export async function checkMagicSession(
   } catch (err) {
     console.error("Magic session check failed:", err)
     return false
-  } finally {
-    dispatch(loadingFalse())
   }
 }
 
@@ -174,6 +172,12 @@ export async function checkMetaMask(dispatch: AppDispatch): Promise<boolean> {
 
     if (wasMetaMaskLoggedOut() || !token || !publicAddress || !authRdns) return false
 
+    // Storage can be edited by the user. Every injected-wallet (EIP-6963) login is stored under
+    // the "metamask" login type for backwards compat, whichever wallet it was (the actual wallet
+    // is identified by auth_rdns). Any other stored type is not an injected-wallet session, so
+    // treat it as invalid and let the catch below clear the stale keys.
+    if (method !== LOGIN_METHODS.MetaMask) throw new Error("Unexpected stored login method")
+
     // Step 1: Discover wallets (EIP-6963) & Match persisted identity
     const provider = await discoverWalletByRdns(authRdns)
     if (!provider) {
@@ -212,7 +216,7 @@ export async function checkMetaMask(dispatch: AppDispatch): Promise<boolean> {
         email: null,
         publicAddress,
         loading: false,
-        loginMethod: method as LoginMethod,
+        loginMethod: LOGIN_METHODS.MetaMask,
         token,
       }),
     )

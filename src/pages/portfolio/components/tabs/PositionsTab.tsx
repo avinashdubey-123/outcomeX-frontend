@@ -3,16 +3,13 @@
 import { useState } from "react"
 import { useSelector } from "react-redux"
 
-import {
-  type ApiPortfolioPosition,
-  useGetPortfolioPositionsQuery,
-} from "@/features/api/portfolio/portfolioApi"
+import { useGetPortfolioPositionsQuery } from "@/features/api/portfolio/portfolioApi"
 import { selectIsAuthChecking } from "@/features/auth/authSlice"
 import { useRedeem } from "@/hooks/useRedeem"
-import { ADDRESSES } from "@/libs/contracts"
 import { type Position } from "@/mocks/mockPortfolio"
 
 import { PORTFOLIO_COLORS, POSITION_SIDE } from "../../portfolioConstants"
+import { formatCents, mapApiPosition } from "../../positionMapping"
 import { Pagination } from "./OrdersAndHistoryTabs"
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -21,47 +18,6 @@ const PAGE_SIZE = 10
 // ── Column layout ─────────────────────────────────────────────────────────────
 const COL = "1fr 80px 80px 80px 80px 110px 150px"
 
-// ── Map API portfolio position → Position ─────────────────────────────────────
-const mapApiPosition = (p: ApiPortfolioPosition): Position => {
-  const side = (p.token?.name ?? "").toLowerCase() === "yes" ? POSITION_SIDE.YES : POSITION_SIDE.NO
-  const shares = Number(p.sharesOwned ?? 0) / 1000000
-  const avgPrice = Number(p.avgPrice ?? 0) / 1000000
-  const invested = Number(p.totalInvested ?? 0) / 10000000000 //dividing by 10^8 because
-  const value = Number(p.currentValue ?? 0) / 10000000000
-  const marketId = p.market?.id ?? `unknown-market-${Math.random()}`
-  const tokenId = p.token?.id ?? `unknown-token-${Math.random()}`
-  const isRedeemedTrue = Number(p.redeemAmount) > 0
-  return {
-    id: `${marketId}-${tokenId}`,
-    marketId: p.market?.id ?? "",
-    marketTitle: p.market?.title ?? "Unknown Market",
-    category: "",
-    side,
-    shares,
-    avgPrice,
-    nowPrice: avgPrice,
-    invested,
-    value,
-    conditionId:
-      p.market.conditionId ?? "0x0000000000000000000000000000000000000000000000000000000000000000",
-    TokenId:
-      p.token.tokenId ?? "0x0000000000000000000000000000000000000000000000000000000000000000",
-
-    collateralToken: ADDRESSES.USDC,
-    isResolved: p.resolved ?? false,
-    winningOutcome: (() => {
-      const outcome = p.winningOutcome ?? p.market?.winningOutcome
-      if (outcome != null) {
-        const str = String(outcome).toUpperCase()
-        if (str === "1" || str === "YES") return "YES"
-        if (str === "0" || str === "NO") return "NO"
-      }
-      return null
-    })(),
-    isRedeemed: isRedeemedTrue,
-  }
-}
-// console.log(mapApiPositio)
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const canRedeem = (pos: Position): boolean =>
   pos.isResolved && pos.winningOutcome === pos.side && !pos.isRedeemed
@@ -206,7 +162,7 @@ const RedeemButton = ({
             }}
           />
         )}
-        {isLoading ? "Redeeming…" : "Redeem"}
+        {isLoading ? "Redeeming…" : `Redeem $${position.value.toFixed(2)}`}
       </button>
     )
   }
@@ -366,7 +322,7 @@ const PositionRow = ({
       </div>
 
       {/* avg price */}
-      <div className="font-sm text-white/80 text-center">{position.avgPrice.toFixed(2)}¢</div>
+      <div className="font-sm text-white/80 text-center">{formatCents(position.avgPrice)}</div>
 
       {/* now price */}
       <div className="font-sm text-white/80 text-center">
@@ -375,7 +331,7 @@ const PositionRow = ({
             {getSettledPriceLabel(position)}
           </span>
         ) : (
-          `${position.nowPrice.toFixed(2)}¢`
+          formatCents(position.nowPrice)
         )}
       </div>
 

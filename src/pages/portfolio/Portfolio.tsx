@@ -1,15 +1,17 @@
 // src/pages/portfolio/PortfolioPage.tsx
 // Main portfolio page — clean orchestration only, all UI in sub-components
 import { Filter, MoreVertical, Search, X } from "lucide-react"
-import { useState } from "react"
-import { useSelector } from "react-redux"
+import { useEffect, useState } from "react"
+import { useSelector, useStore } from "react-redux"
 import { useNavigate } from "react-router"
 
+import type { RootState } from "@/app/store"
 import { LoginModal } from "@/components/auth/LoginModal"
 import { MetaMaskDepositModal } from "@/components/deposit/MetaMaskDepositModal"
 import { WithdrawModal } from "@/components/withdrawl/withdrawModal"
 import {
   selectAvailableAmount,
+  selectIsAuthChecking,
   selectIsAuthenticated,
   selectLoginMethod,
 } from "@/features/auth/authSlice"
@@ -38,7 +40,25 @@ const PortfolioPage = () => {
   const { magic } = useMagic()
   const navigate = useNavigate()
 
-  const [loginOpen, setLoginOpen] = useState(() => localStorage.getItem("isSignedIn") !== "true")
+  const isAuthChecking = useSelector(selectIsAuthChecking)
+
+  // The login modal follows the real auth state (not a localStorage flag, which can go stale).
+  // It waits for the first auth check to finish so a logged-in user never sees it flash on
+  // reload. "Resolved" is latched, so later checks (e.g. during an email login) don't hide
+  // the modal mid-login.
+  const [authResolved, setAuthResolved] = useState(!isAuthChecking)
+  if (!isAuthChecking && !authResolved) setAuthResolved(true)
+
+  // If the user was logged in on this page and the session ends (logout, expiry), go home
+  // rather than throwing the login modal at them. The modal is only for visitors who arrive
+  // without a session.
+  const [hadSession, setHadSession] = useState(isAuthenticated)
+  if (isAuthenticated && !hadSession) setHadSession(true)
+  const loginOpen = authResolved && !isAuthenticated && !hadSession
+
+  useEffect(() => {
+    if (hadSession && !isAuthenticated) navigate("/", { replace: true })
+  }, [hadSession, isAuthenticated, navigate])
   const [activeTab, setActiveTab] = useState<PortfolioTab>(PORTFOLIO_TABS.POSITIONS)
   const [search, setSearch] = useState("")
   const [withdrawOpen, setWithdrawOpen] = useState(false)
@@ -47,16 +67,18 @@ const PortfolioPage = () => {
   // micro-USDC (6 decimals string) → plain USDC number
   const availableBalance = Number(BigInt(availableAmountRaw ?? "0")) / 1_000_000
 
+  // Dismissing the modal without logging in leaves the page; after a successful login the
+  // modal closes on its own because loginOpen follows isAuthenticated. Reads the live store
+  // value: the modal calls this after login finishes, when this render's isAuthenticated
+  // would still be false.
+  const store = useStore<RootState>()
   const handleLoginClose = () => {
-    setLoginOpen(false)
-    if (!isAuthenticated) navigate(-1)
+    if (!store.getState().auth.isAuthenticated) navigate(-1)
   }
 
   const handleDeposit = async () => {
-    if (!isAuthenticated) {
-      setLoginOpen(true)
-      return
-    }
+    // Not logged in: the login modal is already showing.
+    if (!isAuthenticated) return
     if (loginMethod === LOGIN_METHODS.MetaMask) {
       setMetamaskDepositOpen(true)
       return
@@ -73,10 +95,7 @@ const PortfolioPage = () => {
         open={metamaskDepositOpen}
         onClose={() => setMetamaskDepositOpen(false)}
       />
-      <LoginModal
-        open={loginOpen}
-        onClose={isAuthenticated ? () => setLoginOpen(false) : handleLoginClose}
-      />
+      <LoginModal open={loginOpen} onClose={handleLoginClose} />
       <WithdrawModal
         open={withdrawOpen}
         onClose={() => setWithdrawOpen(false)}

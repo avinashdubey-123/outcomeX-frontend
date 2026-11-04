@@ -71,6 +71,7 @@ const mapApiMarketToMarket = (m: ApiMarketListResponse["data"]["data"][number]):
     noTokenId: noToken?.id ?? null,
     yesTokenOnChainId: yesToken?.tokenId ?? null,
     noTokenOnChainId: noToken?.tokenId ?? null,
+    optionGroupId: m.optionGroups?.[0]?.id,
     oracleIdentifier: m.oracleIdentifier,
     status: m.status,
     isBookmarked: m.isBookmarked ?? false,

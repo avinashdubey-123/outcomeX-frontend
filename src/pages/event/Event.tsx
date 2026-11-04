@@ -1,7 +1,7 @@
 import { CheckCircle, TrendingUp } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { useSelector } from "react-redux"
-import { useParams } from "react-router"
+import { useParams, useSearchParams } from "react-router"
 import { toast } from "sonner"
 
 import { useAppSelector } from "@/app/hooks"
@@ -44,6 +44,9 @@ const TABS: { key: TabKey; label: string }[] = [
 // ─── EventPage ────────────────────────────────────────────────────────────────
 const EventPage = () => {
   const { id } = useParams()
+  // ?outcome=yes|no comes from the Yes/No buttons on a market card.
+  const [searchParams] = useSearchParams()
+  const initialOutcome = searchParams.get("outcome") === "no" ? "no" : "yes"
   const { magic } = useMagic()
 
   const [activeTab, setActiveTab] = useState<TabKey>("rules")
@@ -366,6 +369,7 @@ const EventPage = () => {
                 ) : (
                   <>
                     <TradePanel
+                      initialOutcome={initialOutcome}
                       yesProbability={finalPrice ?? 50}
                       noProbability={finalPrice ? 100 - finalPrice : 50}
                       isCrypto={false}
@@ -418,15 +422,16 @@ const EventPage = () => {
                 </div>
               ) : (
                 <TradePanel
+                  initialOutcome={initialOutcome}
                   yesProbability={finalPrice ?? 50}
                   noProbability={finalPrice ? 100 - finalPrice : 50}
                   isCrypto={false}
                   onLoginRequired={() => setIsLoginOpen(true)}
                   onDepositRequired={() => magic?.wallet?.showUI()}
-                  onTrade={(order) => {
-                    handleTrade(order)
-                    setIsMobileTradeOpen(false)
-                  }}
+                  // The drawer stays open after "Place order" so the user can follow the progress
+                  // (approvals / signing) and any error; it closes with the X or by tapping outside.
+                  onTrade={handleTrade}
+                  approvalState={approvalState}
                 />
               )}
             </div>

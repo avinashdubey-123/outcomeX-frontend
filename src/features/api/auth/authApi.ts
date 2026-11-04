@@ -111,11 +111,14 @@ const authApi = secondApi.injectEndpoints({
       { statusCode: number; status: boolean; message: string; type: string },
       { name: string }
     >({
-      query: (body) => ({
-        url: "/v1/user/profile",
-        method: "PUT",
-        body,
-      }),
+      // The backend route uses multer (multipart/form-data) because it also accepts a profile
+      // picture. A JSON body is ignored there — name arrives undefined and nothing is saved —
+      // so this must be sent as FormData. Don't set Content-Type; the browser adds the boundary.
+      query: ({ name }) => {
+        const body = new FormData()
+        body.append("name", name)
+        return { url: "/v1/user/profile", method: "PUT", body }
+      },
       invalidatesTags: ["Profile"],
     }),
 
@@ -138,6 +141,9 @@ const authApi = secondApi.injectEndpoints({
         method: "POST",
         body,
       }),
+      // Refetch the profile so the name (navbar, profile page, settings) and onboardingStatus
+      // update right after the first-login username is set.
+      invalidatesTags: ["Profile"],
     }),
   }),
 })

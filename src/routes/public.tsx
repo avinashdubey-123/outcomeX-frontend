@@ -7,11 +7,13 @@ import Home from "@/pages/Home"
 import LeaderboardPage from "@/pages/leaderboard/LeaderboardPage"
 import MarketPage from "@/pages/market/MarketPage"
 import MarketsPage from "@/pages/market/MarketPage"
-import NotificationsPage from "@/pages/notifications/NotificationsPage"
+import NotificationsPage, {
+  NotificationsPageSkeleton,
+} from "@/pages/notifications/NotificationsPage"
 import PortfolioPage from "@/pages/portfolio/Portfolio"
 import ProfilePage from "@/pages/profile/ProfilePage"
 import RewardsPage from "@/pages/rewards/RewardsPage"
-import SettingsPage from "@/pages/settings/SettingsPage"
+import SettingsPage, { SettingsPageSkeleton } from "@/pages/settings/SettingsPage"
 import StaticPage from "@/pages/static/StaticPage"
 import TermsPage from "@/pages/terms/TermsPage"
 
@@ -65,7 +67,7 @@ export const publicRoutes: RouteObject[] = [
   {
     path: ROUTES.SETTINGS,
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute fallback={<SettingsPageSkeleton />}>
         <SettingsPage />
       </ProtectedRoute>
     ),
@@ -73,7 +75,7 @@ export const publicRoutes: RouteObject[] = [
   {
     path: ROUTES.NOTIFICATIONS,
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute fallback={<NotificationsPageSkeleton />}>
         <NotificationsPage />
       </ProtectedRoute>
     ),

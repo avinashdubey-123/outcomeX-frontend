@@ -1,10 +1,11 @@
 import { Bookmark, Gift, RefreshCcw } from "lucide-react"
-import type { FC } from "react"
+import { type FC, useState } from "react"
 import { useNavigate } from "react-router"
 
 import { useAppDispatch } from "@/app/hooks"
 import { IcoAI } from "@/components/custom/IcoAI"
 import { Button } from "@/components/ui/button"
+import { useGetMarketPriceQuery } from "@/features/api/markets/marketApi"
 import { setSelectedMarket } from "@/features/markets/marketSlice"
 import {
   getMarketStatusLabel,
@@ -12,6 +13,7 @@ import {
   MARKET_STATUS,
 } from "@/features/markets/marketStatus"
 import type { Market } from "@/features/markets/types"
+import { useInView } from "@/hooks/ui/useInView"
 
 import { PercentageBar } from "./PercentageBar"
 
@@ -19,12 +21,30 @@ interface MarketCardProps {
   market: Market
 }
 
+// Placeholder for a percentage that is still loading.
+const PriceSkeleton = () => (
+  <span className="inline-block h-3.5 w-8 align-middle rounded bg-current opacity-25 animate-pulse" />
+)
+
 export const BinaryMarketCard: FC<MarketCardProps> = ({ market }) => {
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
 
-  const yesP = market.yesProbability ?? 50
-  const noP = market.noProbability ?? 50
+  // Real price from the backend (shared RTK cache with the event page). Only requested once
+  // the card is near the viewport, so long lists don't fire every request on load.
+  const [cardEl, setCardEl] = useState<HTMLDivElement | null>(null)
+  const inView = useInView(cardEl)
+  const { data: livePrice, isLoading: priceLoading } = useGetMarketPriceQuery(
+    market.optionGroupId ?? "",
+    {
+      skip: !market.optionGroupId || !inView,
+    },
+  )
+  // Pending = a price is expected but hasn't arrived (not requested yet, or in flight): show a
+  // skeleton. If loading finished with no price, show a dash. Never a made-up 50%.
+  const yesP = livePrice != null && Number.isFinite(livePrice) ? Math.round(livePrice) : null
+  const noP = yesP != null ? 100 - yesP : null
+  const pricePending = yesP == null && !!market.optionGroupId && (!inView || priceLoading)
 
   const totalVolume = (market.yesVolume ?? 0) + (market.noVolume ?? 0)
   const volumeLabel =
@@ -57,13 +77,17 @@ export const BinaryMarketCard: FC<MarketCardProps> = ({ market }) => {
     return null
   })()
 
-  const handleNavigation = () => {
+  // `outcome` pre-selects Yes/No in the trade panel on the event page.
+  const handleNavigation = (outcome?: "yes" | "no") => {
     dispatch(setSelectedMarket(market))
-    navigate(`/event/${market.id}`)
+    navigate(`/event/${market.id}${outcome ? `?outcome=${outcome}` : ""}`)
   }
 
   return (
-    <div className="group flex flex-col border border-white/10 rounded-xl p-4 transition-all duration-200 hover:border-primary/50 hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] cursor-pointer bg-[linear-gradient(135deg,rgba(255,255,255,0.05)_0%,rgba(255,255,255,0.02)_100%)]">
+    <div
+      ref={setCardEl}
+      className="group flex flex-col border border-white/10 rounded-xl p-4 transition-all duration-200 hover:border-primary/50 hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] cursor-pointer bg-[linear-gradient(135deg,rgba(255,255,255,0.05)_0%,rgba(255,255,255,0.02)_100%)]"
+    >
       <div className="flex gap-4 items-center max-h-10 mb-2">
         {statusBadge && (
           <span
@@ -86,7 +110,7 @@ export const BinaryMarketCard: FC<MarketCardProps> = ({ market }) => {
           />
         </div>
         <h3
-          onClick={handleNavigation}
+          onClick={() => handleNavigation()}
           className="h3 font-bold leading-tight align-center capitalize line-clamp-2 overflow-hidden  group-hover:text-primary transition-colors"
         >
           {market.title}
@@ -96,22 +120,30 @@ export const BinaryMarketCard: FC<MarketCardProps> = ({ market }) => {
       <div className="mt-auto space-y-2.5">
         <div className="flex gap-2">
           <Button
-            onClick={handleNavigation}
+            onClick={() => handleNavigation("yes")}
             variant="outline"
             className="flex-1 bg-option-yes h-9.5 border-yes/20 text-primary font-bold hover:bg-primary hover:text-background transition-all active:scale-95"
           >
-            Yes {market.yesProbability}%
+            Yes {pricePending ? <PriceSkeleton /> : `${yesP ?? "–"}%`}
           </Button>
           <Button
-            onClick={handleNavigation}
+            onClick={() => handleNavigation("no")}
             variant="outline"
             className="flex-1 bg-option-no h-9.5  border-no/20 text-no font-bold hover:bg-no hover:text-background transition-all active:scale-95"
           >
-            No {market.noProbability}%
+            No {pricePending ? <PriceSkeleton /> : `${noP ?? "–"}%`}
           </Button>
         </div>
 
-        <PercentageBar yesPercentage={yesP} noPercentage={noP} />
+        {pricePending ? (
+          <div className="h-1 w-full rounded-full bg-white/10 animate-pulse" />
+        ) : (
+          <PercentageBar
+            yesPercentage={yesP ?? 0}
+            noPercentage={noP ?? 0}
+            hideLabels={yesP == null}
+          />
+        )}
 
         <div className="flex items-center justify-between font-xs text-white font-bold  tracking-widest pt-4 border-t border-card-divider">
           <div className="flex items-center gap-3">

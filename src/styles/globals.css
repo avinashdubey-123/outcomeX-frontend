@@ -527,3 +527,172 @@
     font-size: 14px;
   }
 }
+
+/* ─── Push notification toast (order fills, market resolved) ─── */
+/* Stronger green than the generic success toast so a push is hard to miss. */
+[data-sonner-toast][data-rich-colors="true"][data-type="success"].push-toast {
+  /* fully opaque so page content never shows through */
+  background: linear-gradient(135deg, #0e4a29 0%, #0a1f15 65%);
+  border: 1px solid rgba(16, 210, 96, 0.7);
+  border-left: 4px solid #10d260;
+  box-shadow:
+    0 0 0 1px rgba(16, 210, 96, 0.1),
+    0 10px 40px rgba(16, 210, 96, 0.22),
+    0 8px 32px rgba(0, 0, 0, 0.5);
+  color: #ffffff;
+}
+
+[data-sonner-toast].push-toast [data-title] {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+[data-sonner-toast][data-rich-colors="true"][data-type="success"].push-toast [data-description] {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Sonner's own rules ([data-styled=true] ... [data-icon]/[data-button], incl. :first-of-type and
+   negative svg margins) have the same specificity as a plain class selector, so the selectors
+   below are deliberately stronger. */
+
+/* Leading icon / "view" action: no background, just the svg centred in its wrapper.
+   Selectors are deliberately stronger than Sonner's own ([data-styled=true] ... incl.
+   :first-of-type and negative svg margins) so these always win. */
+[data-sonner-toast][data-styled="true"].push-toast.push-toast [data-icon] {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  margin: 0 12px 0 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
+
+[data-sonner-toast][data-styled="true"].push-toast.push-toast [data-icon] svg {
+  display: block;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  stroke-width: 2.25;
+  color: #19e676;
+  filter: drop-shadow(0 0 6px rgba(16, 210, 96, 0.7));
+  transform-origin: 50% 10%;
+  animation: push-icon-ring 0.9s ease-out 0.25s 1;
+}
+
+/* One gentle bell ring when the toast appears */
+@keyframes push-icon-ring {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  15% {
+    transform: rotate(16deg);
+  }
+  30% {
+    transform: rotate(-13deg);
+  }
+  45% {
+    transform: rotate(9deg);
+  }
+  60% {
+    transform: rotate(-6deg);
+  }
+  75% {
+    transform: rotate(3deg);
+  }
+}
+
+/* "View" action: a bare green eye, no background. Hover / click only change the brightness. */
+[data-sonner-toast][data-styled="true"].push-toast.push-toast [data-button],
+[data-sonner-toast][data-styled="true"].push-toast.push-toast [data-button]:first-of-type {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  padding: 0;
+  margin: 0 0 0 12px;
+  background: none;
+  border: 0;
+  border-radius: 8px;
+  box-shadow: none;
+  color: #19e676;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+[data-sonner-toast][data-styled="true"].push-toast.push-toast [data-button] svg {
+  display: block;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  stroke-width: 2.25;
+  color: #19e676;
+  filter: drop-shadow(0 0 6px rgba(16, 210, 96, 0.7));
+}
+
+[data-sonner-toast][data-styled="true"].push-toast.push-toast [data-button]:hover {
+  filter: brightness(1.35);
+}
+
+[data-sonner-toast][data-styled="true"].push-toast.push-toast [data-button]:active {
+  filter: brightness(0.8);
+}
+
+[data-sonner-toast][data-styled="true"].push-toast.push-toast [data-button]:focus-visible {
+  outline: 2px solid #19e676;
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-sonner-toast][data-styled="true"].push-toast.push-toast [data-icon] svg {
+    animation: none;
+  }
+  [data-sonner-toast][data-styled="true"].push-toast.push-toast [data-button] {
+    transition: none;
+  }
+}
+
+/* ─── Push toast: red variant (cancelled / failed) ─── */
+[data-sonner-toast][data-rich-colors="true"][data-type="error"].push-toast-error {
+  background: linear-gradient(135deg, #5c1a28 0%, #1f0b11 65%);
+  border: 1px solid rgba(234, 57, 67, 0.7);
+  border-left: 4px solid #ea3943;
+  box-shadow:
+    0 0 0 1px rgba(234, 57, 67, 0.1),
+    0 10px 40px rgba(234, 57, 67, 0.22),
+    0 8px 32px rgba(0, 0, 0, 0.5);
+  color: #ffffff;
+}
+
+[data-sonner-toast][data-rich-colors="true"][data-type="error"].push-toast-error
+  [data-description] {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+[data-sonner-toast][data-styled="true"].push-toast.push-toast-error [data-button],
+[data-sonner-toast][data-styled="true"].push-toast.push-toast-error [data-button]:first-of-type {
+  color: #ff6b6b;
+}
+
+[data-sonner-toast][data-styled="true"].push-toast.push-toast-error [data-icon] svg,
+[data-sonner-toast][data-styled="true"].push-toast.push-toast-error [data-button] svg {
+  color: #ff6b6b;
+  filter: drop-shadow(0 0 6px rgba(234, 57, 67, 0.75));
+}
+
+[data-sonner-toast][data-styled="true"].push-toast.push-toast-error [data-icon] svg {
+  animation: none;
+}
+
+[data-sonner-toast][data-styled="true"].push-toast.push-toast-error [data-button]:focus-visible {
+  outline-color: #ff6b6b;
+}

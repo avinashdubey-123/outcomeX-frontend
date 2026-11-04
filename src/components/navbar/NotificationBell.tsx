@@ -61,12 +61,14 @@ const UnreadDot = () => (
   <div className="absolute top-3.5 left-1.5 w-1 h-1 rounded-full bg-[#00c853]" />
 )
 
-const EmptyState = () => (
+const EmptyState = ({ unreadOnly }: { unreadOnly?: boolean }) => (
   <div className="flex flex-col items-center justify-center py-6 px-5 gap-2.5">
     <div className="w-10 h-10 rounded-full bg-white/6 flex items-center justify-center">
       <Bell size={18} color="rgba(255,255,255,0.6)" />
     </div>
-    <p className="text-sm font-semibold text-white/60">No notifications</p>
+    <p className="text-sm font-semibold text-white/60">
+      {unreadOnly ? "No unread notifications" : "No notifications"}
+    </p>
     <p className="text-xs text-white/30">You're all caught up!</p>
   </div>
 )
@@ -123,6 +125,34 @@ const NotifRow = ({ notif }: { notif: Notification }) => {
     </div>
   )
 }
+
+// ── All / Unread tabs ─────────────────────────────────────────────────────────
+type Filter = "all" | "unread"
+
+const FilterTabs = ({
+  value,
+  unreadCount,
+  onChange,
+}: {
+  value: Filter
+  unreadCount: number
+  onChange: (f: Filter) => void
+}) => (
+  <div className="flex gap-1 px-3 pt-3">
+    {(["all", "unread"] as const).map((f) => (
+      <button
+        key={f}
+        onClick={() => onChange(f)}
+        className={`px-3 py-1 rounded-full font-xs font-semibold capitalize transition-colors ${
+          value === f ? "bg-primary text-black" : "text-white/50 hover:text-white hover:bg-white/5"
+        }`}
+      >
+        {f}
+        {f === "unread" && unreadCount > 0 ? ` (${unreadCount})` : ""}
+      </button>
+    ))}
+  </div>
+)
 
 // ── Dropdown header ───────────────────────────────────────────────────────────
 const DropdownHeader = ({
@@ -220,6 +250,9 @@ export const NotificationBell = ({ onToggle }: NotificationBellProps) => {
   const [hasMore, setHasMore] = useState(true)
   const [isFetchingMore, setIsFetchingMore] = useState(false)
   const [nextSkip, setNextSkip] = useState(0)
+  const [filter, setFilter] = useState<Filter>("all")
+  const visibleNotifications =
+    filter === "unread" ? notifications.filter((n) => !n.read) : notifications
 
   const [triggerFetch] = useLazyGetNotificationsQuery()
 
@@ -315,17 +348,19 @@ export const NotificationBell = ({ onToggle }: NotificationBellProps) => {
             onClose={toggle}
           />
 
+          <FilterTabs value={filter} unreadCount={unreadCount} onChange={setFilter} />
+
           {/* Scrollable list */}
           <div
             className="flex-1 overflow-y-auto no-scrollbar"
             style={{ maxHeight: NOTIFICATION_LIMITS.MAX_LIST_HEIGHT }}
             onScroll={handleScroll}
           >
-            {notifications.length === 0 && !isFetchingMore ? (
-              <EmptyState />
+            {visibleNotifications.length === 0 && !isFetchingMore ? (
+              <EmptyState unreadOnly={filter === "unread"} />
             ) : (
               <>
-                {notifications.map((n) => (
+                {visibleNotifications.map((n) => (
                   <NotifRow key={n.id} notif={n} />
                 ))}
 

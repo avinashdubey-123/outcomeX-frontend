@@ -19,9 +19,11 @@ import {
 } from "lucide-react"
 import { useSelector } from "react-redux"
 
+import { useProfileQuery } from "@/features/api/auth/authApi"
 // import { useNavigate } from "react-router"
 import {
   //  selectIsAuthenticated,
+  selectIsAuthChecking,
   selectUserData,
 } from "@/features/auth/authSlice"
 import { formatMarketDate } from "@/libs/formatDate"
@@ -97,7 +99,7 @@ const StatCard = ({
   trend?: string
   accentColor?: string
 }) => (
-  <div className="bg-white/5  py-4 px-5 flex rounded-lg flex-col gap-1 justify-center min-h-24 border border-white/10 hover:translate-y-[-4px] hover:border-primary transition-all duration-200 ease-in-out cursor-pointer">
+  <div className="bg-white/5  py-4 px-5 flex rounded-lg flex-col gap-1 justify-center min-h-24 border border-white/10">
     <span className="font-base font-bold text-white/45 uppercase tracking-widest">{label}</span>
     <span
       className="font-lg font-black tracking-tight my-1 "
@@ -191,56 +193,91 @@ interface ProfileStat {
   accentColor?: string
 }
 
+const shortenAddress = (address: string | null | undefined) =>
+  address ? `${address.slice(0, 6)}...${address.slice(-4)}` : ""
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
+const HeaderSkeleton = () => (
+  <div className="flex flex-wrap items-center gap-3 sm:gap-10 mb-14 animate-pulse">
+    <div className="w-20 h-20 rounded-full md:w-30 md:h-30 lg:w-40 lg:h-40 md:rounded-lg bg-white/10 shrink-0" />
+    <div className="flex flex-col gap-4 mt-2">
+      <div className="h-8 w-56 rounded bg-white/10" />
+      <div className="h-4 w-72 rounded bg-white/10" />
+      <div className="h-4 w-48 rounded bg-white/10" />
+      <div className="h-10 w-36 rounded bg-white/10" />
+    </div>
+  </div>
+)
+
 const ProfilePage = () => {
   // TODO: const { data: profile } = useGetProfileQuery()
   const profile = MOCK_PROFILE
   const stats = MOCK_PROFILE_STATS
-  const { email } = useSelector(selectUserData)
+  const { email, publicAddress, token } = useSelector(selectUserData)
+  const isAuthChecking = useSelector(selectIsAuthChecking)
+  const { data: profileData, isLoading: profileLoading } = useProfileQuery(undefined, {
+    skip: !token,
+  })
+  // On reload the session is restored asynchronously; show a skeleton instead of flashing
+  // the email/address fallback before the saved name arrives.
+  const isHeaderLoading = isAuthChecking || profileLoading
+  const savedName = profileData?.data.name?.trim()
+  // Saved name first, then email, then the wallet address.
+  const displayName = savedName || email || shortenAddress(publicAddress) || "User"
   // const isAuthenticated = useSelector(selectIsAuthenticated)
   // const navigate = useNavigate()
 
-  const shortAddr = profile.address.slice(0, 6) + "..." + profile.address.slice(-4)
+  const shortAddr = shortenAddress(publicAddress)
 
   return (
     <div className="container font-inter">
       <div className=" mt-4 md:mt-6 mb-12 md:mb-18.5">
         {/* ── Header card ── */}
-        <div className="flex  flex-wrap justify-start items-center gap-3 sm:gap-10 mb-14">
-          <BigAvatar name={profile.displayName} />
+        {isHeaderLoading ? (
+          <HeaderSkeleton />
+        ) : (
+          <div className="flex  flex-wrap justify-start items-center gap-3 sm:gap-10 mb-14">
+            <BigAvatar name={displayName} />
 
-          <div className="mt-2">
-            <div className=" flex flex-wrap gap-3 mb-4 ">
-              <h1 className="font-2xl font-black  tracking-tight">{profile.displayName} </h1>
-              <div className="block lg:hidden bg-primary/10 border border-primary/70 rounded-md h-fit mt-1 w-fit py-0.5 px-3  ">
-                <span className="font-base text-primary uppercase font-bold">Global Rank</span>
-                <span className="font-base text-primary font-bold"> #{profile.rank}</span>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-                <div className="flex items-center gap-2.5 text-white/60 font-medium font-sm cursor-pointer hover:text-white/80 transition-colors">
-                  <Copy size={16} /> {shortAddr}
-                </div>
-                <div className="flex items-center gap-2.5 text-white/60 font-medium font-sm ">
-                  <Calendar size={14} /> Member since {formatMarketDate(profile.joinedAt)}
+            <div className="mt-2">
+              <div className=" flex flex-wrap gap-3 mb-4 ">
+                <h1 className="font-2xl font-black  tracking-tight">{displayName}</h1>
+                <div className="block lg:hidden bg-primary/10 border border-primary/70 rounded-md h-fit mt-1 w-fit py-0.5 px-3  ">
+                  <span className="font-base text-primary uppercase font-bold">Global Rank</span>
+                  <span className="font-base text-primary font-bold"> #{profile.rank}</span>
                 </div>
               </div>
 
-              {email && (
-                <div className="flex items-center gap-3 text-white/60 font-medium text-sm">
-                  <Mail size={16} /> {email}
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+                  {shortAddr && (
+                    <button
+                      type="button"
+                      onClick={() => navigator.clipboard.writeText(publicAddress ?? "")}
+                      title="Copy address"
+                      className="flex items-center gap-2.5 text-white/60 font-medium font-sm cursor-pointer hover:text-white/80 transition-colors"
+                    >
+                      <Copy size={16} /> {shortAddr}
+                    </button>
+                  )}
+                  <div className="flex items-center gap-2.5 text-white/60 font-medium font-sm ">
+                    <Calendar size={14} /> Member since {formatMarketDate(profile.joinedAt)}
+                  </div>
                 </div>
-              )}
 
-              {/* Share + Settings buttons */}
-              <div className="flex items-center gap-2 mt-1">
-                <button className="flex items-center gap-2.5 text-black py-2 px-5 bg-primary border border-white/10 rounded-sm font-bold font-sm hover:bg-primary/60 w-fit transition-all">
-                  <Share2 size={15} className="text-black [&_svg]:[stroke:2.5px]" /> Share Profile
-                </button>
+                {email && email !== displayName && (
+                  <div className="flex items-center gap-3 text-white/60 font-medium text-sm">
+                    <Mail size={16} /> {email}
+                  </div>
+                )}
 
-                {/* {isAuthenticated && (
+                {/* Share + Settings buttons */}
+                <div className="flex items-center gap-2 mt-1">
+                  <button className="flex items-center gap-2.5 text-black py-2 px-5 bg-primary border border-white/10 rounded-sm font-bold font-sm hover:bg-primary/60 w-fit transition-all">
+                    <Share2 size={15} className="text-black [&_svg]:[stroke:2.5px]" /> Share Profile
+                  </button>
+
+                  {/* {isAuthenticated && (
                   <button
                     onClick={() => navigate(ROUTES.SETTINGS)}
                     className="flex items-center gap-2 py-2 px-4 bg-white/5 border border-white/10 rounded-sm font-bold font-sm text-white/70 hover:text-white hover:bg-white/10 w-fit transition-all"
@@ -249,17 +286,18 @@ const ProfilePage = () => {
                     Settings
                   </button>
                 )} */}
+                </div>
+              </div>
+            </div>
+
+            <div className="hidden lg:flex bg-primary/10 border border-primary/20 rounded-lg py-4 px-6 items-center gap-7 justify-between lg:ml-auto max-h-21 ">
+              <div className="flex flex-col gap-1">
+                <span className="font-base text-primary uppercase font-bold">Global Rank</span>
+                <span className="font-xl text-primary font-black">#{profile.rank}</span>
               </div>
             </div>
           </div>
-
-          <div className="hidden lg:flex bg-primary/10 border border-primary/20 rounded-lg py-4 px-6 items-center gap-7 justify-between lg:ml-auto max-h-21 ">
-            <div className="flex flex-col gap-1">
-              <span className="font-base text-primary uppercase font-bold">Global Rank</span>
-              <span className="font-xl text-primary font-black">#{profile.rank}</span>
-            </div>
-          </div>
-        </div>
+        )}
 
         {/* ── Stats grid ── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">

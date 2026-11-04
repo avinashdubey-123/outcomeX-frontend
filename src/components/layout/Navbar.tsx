@@ -25,7 +25,7 @@ import { useAppSelector } from "@/app/hooks"
 import { LoginModal } from "@/components/auth/LoginModal"
 import { Button } from "@/components/ui/button"
 import { ROUTES } from "@/constants/routes"
-import { useLogoutMutation } from "@/features/api/auth/authApi"
+import { useLogoutMutation, useProfileQuery } from "@/features/api/auth/authApi"
 import { useGetCategoriesQuery } from "@/features/api/category/categoryApi"
 import { secondApi } from "@/features/api/secondApi"
 import {
@@ -156,9 +156,11 @@ const SidebarItem = ({
   onClick,
   active = false,
   rightContent,
+  uppercase = false,
 }: {
   icon?: React.ReactNode
   label: string
+  uppercase?: boolean
   onClick?: () => void
   active?: boolean
   rightContent?: React.ReactNode
@@ -169,7 +171,7 @@ const SidebarItem = ({
       ${active ? "text-white bg-primary/10" : "text-white/60 hover:text-white hover:bg-white/5"}`}
   >
     {icon && <span className="w-5 flex items-center justify-center">{icon}</span>}
-    <span className="flex-1 text-left">{label}</span>
+    <span className={`flex-1 text-left ${uppercase ? "uppercase" : ""}`}>{label}</span>
     {rightContent}
     {active && (
       <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[3px] h-7 bg-primary rounded-l-full" />
@@ -433,11 +435,14 @@ export const Navbar: FC = () => {
     setMenuOpen(false)
   }
 
-  const displayName = email
-    ? email.split("@")[0]
-    : publicAddress
-      ? `${publicAddress.slice(0, 6)}...${publicAddress.slice(-4)}`
-      : "User"
+  const { data: profileData } = useProfileQuery(undefined, { skip: !user.token })
+  const savedName = profileData?.data.name?.trim()
+
+  // Saved name first, then email, then shortened wallet address.
+  const displayName =
+    savedName ||
+    email ||
+    (publicAddress ? `${publicAddress.slice(0, 6)}...${publicAddress.slice(-4)}` : "User")
 
   // ── Logout ────────────────────────────────────────────────────────────────
   const handleLogout = async () => {
@@ -466,6 +471,7 @@ export const Navbar: FC = () => {
       localStorage.removeItem("auth_token")
       localStorage.removeItem("auth_method")
       localStorage.removeItem("auth_address")
+      localStorage.removeItem("auth_rdns")
       dispatch(secondApi.util.resetApiState())
       dispatch(logout())
       dispatch(loadingFalse())
@@ -575,6 +581,8 @@ export const Navbar: FC = () => {
               key={link.path}
               icon={NAV_ICONS[link.label]}
               label={link.label}
+              // CSS-only, so the label still matches the NAV_ICONS lookup key.
+              uppercase={moreLinks.some((m) => m.path === link.path)}
               active={location.pathname === link.path}
               onClick={() => {
                 navigate(link.path)
@@ -852,7 +860,7 @@ export const Navbar: FC = () => {
                           >
                             <Avatar email={email} address={publicAddress} size="lg" square />
                             <div className="flex flex-col min-w-0">
-                              <span className="font-md font-bold text-white truncate capitalize">
+                              <span className="font-md font-bold text-white truncate">
                                 {displayName}
                               </span>
                               <div className="flex gap-4 mt-2 items-center">

@@ -20,6 +20,8 @@ export interface TradePanelProps {
   onLoginRequired?: () => void
   onDepositRequired?: () => void
   approvalState?: "idle" | "approving-usdc" | "approving-ctf" | "signing" | "submitting"
+  // Which side starts selected (e.g. from clicking Yes/No on a market card). Defaults to "yes".
+  initialOutcome?: "yes" | "no"
 }
 
 type Action = "Buy" | "Sell"
@@ -41,6 +43,7 @@ const TradePanel = ({
   onLoginRequired,
   onDepositRequired,
   approvalState = "idle",
+  initialOutcome = "yes",
 }: TradePanelProps) => {
   const labelA = isCrypto ? "Up" : "Yes"
   const labelB = isCrypto ? "Down" : "No"
@@ -56,7 +59,7 @@ const TradePanel = ({
   // ── Core state ──────────────────────────────────────────────────────────────
   const [action, setAction] = useState<Action>("Buy")
   const [orderType, setOrderType] = useState<OrderType>("Limit")
-  const [outcome, setOutcome] = useState(labelA)
+  const [outcome, setOutcome] = useState(initialOutcome === "no" ? labelB : labelA)
   const {
     isOpen: dropOpen,
     toggle: toggleDrop,
@@ -74,10 +77,10 @@ const TradePanel = ({
   const [sellPct, setSellPct] = useState<string | null>(null)
 
   // ── Limit state ──
-  const [limitCents, setLimitCents] = useState(priceA)
+  const [limitCents, setLimitCents] = useState(initialOutcome === "no" ? priceB : priceA)
   // Separate string state so the user can type decimals freely (e.g. "50.")
   // without the number being clamped mid-keystroke.
-  const [limitInput, setLimitInput] = useState(String(priceA))
+  const [limitInput, setLimitInput] = useState(String(initialOutcome === "no" ? priceB : priceA))
 
   const updateLimit = (val: number) => {
     const clamped = Math.min(99.9, Math.max(0.01, val))

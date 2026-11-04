@@ -80,14 +80,18 @@ interface MarketGridSkeletonProps {
   count?: number
 }
 
+export const SkeletonKeyframes: FC = () => (
+  <style>{`
+    @keyframes sk-shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+  `}</style>
+)
+
 export const MarketGridSkeleton: FC<MarketGridSkeletonProps> = ({ count = 8 }) => (
   <>
-    <style>{`
-      @keyframes sk-shimmer {
-        0%   { background-position: 200% 0; }
-        100% { background-position: -200% 0; }
-      }
-    `}</style>
+    <SkeletonKeyframes />
     <div
       style={{
         display: "grid",

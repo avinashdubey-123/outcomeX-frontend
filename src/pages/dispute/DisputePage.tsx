@@ -6,6 +6,10 @@ import { useGetMarketByIdQuery, useGetOracleTimelineQuery } from "@/features/api
 import { extractDisputeData } from "@/features/markets/disputeHelpers"
 import { useDisputeTransactions } from "@/hooks/dispute/useDisputeTransactions"
 
+// Shared card styling. No hover effects: these are read-only panels, not buttons.
+const CARD = "rounded-2xl border border-white/10 bg-linear-to-b from-white/5 to-white/2 p-5 md:p-6"
+const LABEL = "mb-3 font-xs font-bold uppercase tracking-widest text-white/40"
+
 export const DisputePage = () => {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -195,145 +199,162 @@ The backend will automatically detect the AnswerDisputed event and update the da
       </div>
     )
 
+  const isExpired = countdown === "Expired"
+  const outcomeLabel =
+    disputeData.proposedResponse === 1 ? "YES" : disputeData.proposedResponse === 0 ? "NO" : "N/A"
+
   return (
-    <div className="container mt-4 md:mt-6 mb-14 md:mb-20 ">
-      {/* Back button */}
+    <div className="container mt-4 md:mt-6 mb-14 md:mb-20">
       <button
         onClick={handleCancel}
-        className="flex items-center gap-1.5 py-2 px-4 rounded-sm font-base font-bold bg-primary  text-black hover:bg-primary/90 transition-colors mb-8 cursor-pointer  border-none"
+        className="mb-6 flex w-fit cursor-pointer items-center gap-2 font-base font-semibold text-white/60 transition-colors hover:text-white"
       >
-        <ArrowLeft size={14} /> BACK TO MARKET
+        <ArrowLeft size={14} /> Back to market
       </button>
 
       {/* Header */}
-      <div className="mb-12">
-        <h1 className="font-2xl font-bold text-white mb-1.5 tracking-tighter">Raise Dispute</h1>
-        <p className="font-default text-white/60 mb-6 ">Challenge the proposed oracle resolution</p>
-        <div className="w-16 h-1 bg-primary rounded-full shadow-[0_0_15px_rgba(0,200,83,0.3)]"></div>
+      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h1 className="font-2xl mb-1.5 font-bold tracking-tighter text-white">Raise Dispute</h1>
+          <p className="font-default text-white/60">Challenge the proposed oracle resolution</p>
+        </div>
+        <div
+          className={`flex w-fit items-center gap-2 rounded-full border px-4 py-2 font-sm font-bold ${
+            isExpired
+              ? "border-[#E11D48]/30 bg-[#E11D48]/10 text-[#E11D48]"
+              : "border-primary/30 bg-primary/10 text-primary"
+          }`}
+        >
+          <Clock size={15} />
+          {isExpired ? "Dispute window closed" : `${countdown || "Calculating..."} left`}
+        </div>
       </div>
 
-      <div className="space-y-6">
-        {/* Row 1: Market Info */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-linear-to-b from-white/5 to-white/2 border border-white/10 rounded-2xl py-5  px-6 shadow-2xl flex flex-col gap-3 hover:translate-y-[-4px] hover:border-primary/80 transition-all duration-200 ease-in-out cursor-pointer">
-            <h3 className="font-xs font-bold text-white/40 uppercase tracking-widest mb-4">
-              Market Question
-            </h3>
-            <p className="font-lg capitalize font-bold text-white leading-tight">{market.title}</p>
-          </div>
-          <div className="bg-linear-to-b from-white/5 to-white/2 border border-white/10 rounded-2xl py-5  px-6 shadow-2xl flex flex-col gap-3 hover:translate-y-[-4px] hover:border-primary/80 transition-all duration-200 ease-in-out cursor-pointer">
-            <h3 className="font-xs font-bold text-white/40 uppercase tracking-widest mb-4">
-              Time Remaining
-            </h3>
-            <div
-              className={`flex items-center gap-2 font-lg font-bold ${countdown === "Expired" ? "text-[#E11D48]" : "text-[#10D260]"}`}
-            >
-              <Clock size={18} />
-              <span>{countdown || "Calculating..."}</span>
-            </div>
-          </div>
-          <div className="bg-linear-to-b from-white/5 to-white/2 border border-white/10 rounded-2xl py-5  px-6 shadow-2xl flex flex-col gap-3 hover:translate-y-[-4px] hover:border-primary/80 transition-all duration-200 ease-in-out cursor-pointer">
-            <h3 className="font-xs font-bold text-white/40 uppercase tracking-widest mb-4">
-              Proposed Outcome
-            </h3>
-            <p className="font-lg font-bold text-white tracking-tight">
-              {disputeData.proposedResponse === 1
-                ? "YES"
-                : disputeData.proposedResponse === 0
-                  ? "NO"
-                  : "N/A"}
-            </p>
-          </div>
-        </div>
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+        {/* ── Left: what is being disputed ── */}
+        <div className="space-y-6">
+          <section className={CARD}>
+            <h3 className={LABEL}>Market question</h3>
+            <p className="font-lg font-bold capitalize leading-tight text-white">{market.title}</p>
+          </section>
 
-        {/* Row 2: Oracle & Bond */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-2    bg-linear-to-b from-white/5 to-white/2 border border-white/10 rounded-2xl py-5  px-6 shadow-2xl flex flex-col gap-3 hover:translate-y-[-4px] hover:border-primary/80 transition-all duration-200 ease-in-out cursor-pointer">
-            <h3 className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-4">
-              Oracle Identifier
-            </h3>
-            <div className="flex items-center gap-3 bg-white/7 border border-white/5 rounded-lg p-3 group/id ">
-              <code className="text-sm text-primary/80 font-mono truncate select-all">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <section className={CARD}>
+              <h3 className={LABEL}>Proposed outcome</h3>
+              <span
+                className={`inline-flex items-center rounded-md border px-3 py-1 font-lg font-bold tracking-tight ${
+                  outcomeLabel === "YES"
+                    ? "border-primary/30 bg-primary/10 text-primary"
+                    : outcomeLabel === "NO"
+                      ? "border-no/30 bg-no/10 text-no"
+                      : "border-white/10 bg-white/5 text-white/60"
+                }`}
+              >
+                {outcomeLabel}
+              </span>
+              <p className="mt-3 font-base text-white/50">The answer you would be disputing.</p>
+            </section>
+
+            <section className={CARD}>
+              <h3 className={LABEL}>Time remaining</h3>
+              <div
+                className={`flex items-center gap-2 font-lg font-bold ${
+                  isExpired ? "text-[#E11D48]" : "text-primary"
+                }`}
+              >
+                <Clock size={18} />
+                <span>{countdown || "Calculating..."}</span>
+              </div>
+              <p className="mt-3 font-base text-white/50">
+                {isExpired ? "This dispute period has ended." : "Until the dispute window closes."}
+              </p>
+            </section>
+          </div>
+
+          <section className={CARD}>
+            <h3 className={LABEL}>Oracle identifier</h3>
+            <div className="flex items-center gap-3 rounded-lg border border-white/10 bg-black/30 p-3">
+              <code className="truncate font-mono text-sm text-primary/80 select-all">
                 {market.oracleIdentifier || "N/A"}
               </code>
               <button
                 onClick={() => navigator.clipboard.writeText(market.oracleIdentifier || "")}
-                className="ml-auto text-white/20 hover:text-[#00FF87] transition-colors cursor-pointer"
-                title="Copy Identifier"
+                className="ml-auto cursor-pointer text-white/30 transition-colors hover:text-white"
+                title="Copy identifier"
+                aria-label="Copy identifier"
               >
                 <Copy size={16} />
               </button>
             </div>
-          </div>
-          <div className=" bg-primary/6  py-5  px-6 shadow-2xl  gap-3 hover:translate-y-[-4px]   ease-in-out cursor-pointer   border border-primary/20 hover:border-primary/80 rounded-lg p-6 flex flex-col transition-all duration-300  group h-full">
-            <h3 className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-4">
-              Required Bond Amount
-            </h3>
+          </section>
+
+          {/* Execution log */}
+          {status && (
+            <div className="animate-in fade-in slide-in-from-top-2 rounded-xl border border-primary/20 bg-primary/5 p-5 font-mono text-xs break-words whitespace-pre-wrap text-primary duration-300">
+              <div className="mb-2 flex items-center gap-2 text-[10px] font-black tracking-widest uppercase opacity-70">
+                <Loader2 size={12} className={isSubmitting ? "animate-spin" : ""} />
+                Execution log
+              </div>
+              {status}
+            </div>
+          )}
+        </div>
+
+        {/* ── Right: bond, steps and the action ── */}
+        <aside className="space-y-4 lg:sticky lg:top-24">
+          <section className="rounded-2xl border border-primary/20 bg-primary/5 p-5 md:p-6">
+            <h3 className={LABEL}>Required bond</h3>
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-bold text-white">{disputeData.bondAmountUSDC}</span>
+              <span className="text-4xl font-bold text-white">{disputeData.bondAmountUSDC}</span>
               <span className="text-xl font-bold text-white/40">USDC</span>
             </div>
-            <div className="md:ml-auto">
-              <span className="font-xs font-bold text-white tracking-[0.15em] uppercase">
-                {Number(disputeData.bondAmount).toLocaleString()} minor units
-              </span>
-            </div>
-          </div>
-        </div>
+          </section>
 
-        {/* Row 3: Warning */}
-        <div className="bg-[#0a0b0d] border border-white/10 rounded-xl overflow-hidden shadow-2xl max-w-full md:max-w-96">
-          <div className="p-6 md:p-8 bg-option-no flex flex-col md:flex-row gap-4 md:gap-6 items-start">
-            <div className="p-3 bg-red-500/20 rounded-lg text-red-500 w-fit">
-              <AlertTriangle size={24} />
+          <section className={CARD}>
+            <div className="mb-4 flex items-center gap-2 font-sm font-bold text-white">
+              <AlertTriangle size={16} className="text-no" />
+              You will approve 2 transactions
             </div>
-            <div className="space-y-2">
-              <h3 className="text-xs font-bold text-red-500 uppercase tracking-widest">
-                Protocol Warning
-              </h3>
-              <div className="text-sm text-white/70 space-y-1">
-                <p>You will need to approve 2 transactions:</p>
-                <div className="ml-1 space-y-0.5">
-                  <div>
-                    1. USDC approval for{" "}
-                    <span className="text-white font-bold">{disputeData.bondAmountUSDC} USDC.</span>
-                  </div>
-                  <div>2. Dispute submission to Oracle contract.</div>
+            <ol className="space-y-4">
+              <li className="flex gap-3">
+                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/15 font-base font-bold text-primary">
+                  1
+                </span>
+                <div>
+                  <p className="font-sm font-semibold text-white">USDC approval</p>
+                  <p className="font-base text-white/50">For {disputeData.bondAmountUSDC} USDC.</p>
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/15 font-base font-bold text-primary">
+                  2
+                </span>
+                <div>
+                  <p className="font-sm font-semibold text-white">Dispute submission</p>
+                  <p className="font-base text-white/50">Sent to the Oracle contract.</p>
+                </div>
+              </li>
+            </ol>
+          </section>
 
-      {/* Status Display */}
-      {status && (
-        <div className="mt-6 bg-[#00FF87]/5 border border-[#00FF87]/20 p-6 font-mono text-xs text-[#00FF87] whitespace-pre-wrap animate-in fade-in slide-in-from-top-2 duration-300 rounded-lg break-words">
-          <div className="flex items-center gap-2 mb-2 font-black uppercase tracking-widest text-[10px] opacity-70">
-            <Loader2 size={12} className={isSubmitting ? "animate-spin" : ""} />
-            Execution Log
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={handleSubmit}
+              disabled={isSubmitting || isExpired}
+              className="flex w-full cursor-pointer items-center justify-center gap-3 rounded-md bg-primary px-6 py-4 font-base font-bold tracking-widest text-black uppercase transition-all hover:bg-primary/90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:grayscale"
+            >
+              {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Gavel size={16} />}
+              {isExpired ? "Period expired" : isSubmitting ? "Submitting..." : "Submit dispute"}
+            </button>
+            <button
+              onClick={handleCancel}
+              disabled={isSubmitting}
+              className="w-full cursor-pointer rounded-md border border-white/10 py-3 font-base font-semibold text-white/60 transition-colors hover:bg-white/5 hover:text-white disabled:opacity-50"
+            >
+              Cancel
+            </button>
           </div>
-          {status}
-        </div>
-      )}
-
-      {/* Actions */}
-      <div className="flex flex-col-reverse md:flex-row items-center justify-end gap-4 md:gap-8 mt-10">
-        <button
-          onClick={handleCancel}
-          disabled={isSubmitting}
-          className="w-full md:w-auto text-white/40 hover:text-white font-bold uppercase tracking-widest text-xs transition-colors disabled:opacity-50 cursor-pointer py-3 md:py-0"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={handleSubmit}
-          disabled={isSubmitting || countdown === "Expired"}
-          className="w-full md:w-auto flex justify-center items-center font-base bg-primary text-black hover:bg-primary/90 md:mb-8 border-none px-10 py-4 rounded-sm font-bold uppercase tracking-widest text-xs transition-all disabled:opacity-50 disabled:grayscale gap-3 shadow-[0_0_20px_rgba(0,255,135,0.2)] active:scale-95 cursor-pointer"
-        >
-          {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Gavel size={16} />}
-          {countdown === "Expired" ? "Period Expired" : "Submit Dispute"}
-        </button>
+        </aside>
       </div>
     </div>
   )

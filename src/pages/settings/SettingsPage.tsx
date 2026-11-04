@@ -9,10 +9,13 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 import { useSelector } from "react-redux"
+import { toast } from "sonner"
 
 import type { RootState } from "@/app/store"
 import { useProfileQuery, useUpdateProfileMutation } from "@/features/api/auth/authApi"
-import { selectUserData } from "@/features/auth/authSlice"
+import { selectIsAuthChecking, selectUserData } from "@/features/auth/authSlice"
+import { usePushNotifications } from "@/hooks/notifications/usePushNotifications"
+import { getNotificationPermission } from "@/services/firebase/fcm"
 
 // ── Sidebar nav items ─────────────────────────────────────────────────────────
 type Tab = "profile" | "account" | "notifications"
@@ -77,7 +80,7 @@ const Field = ({
         disabled={disabled}
         placeholder={placeholder}
         maxLength={maxLength}
-        className="w-full bg-[#111418] border border-white/10 rounded-md px-3 py-2.5 text-sm text-white placeholder-white/30 outline-none focus:border-primary/50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed pr-10"
+        className="w-full bg-[#111418] border border-white/10 rounded-md px-3 py-2.5 font-sm text-white placeholder-white/30 outline-none focus:border-primary/50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed pr-10"
       />
       {suffix && <span className="absolute right-3 text-white/40 flex items-center">{suffix}</span>}
     </div>
@@ -85,9 +88,26 @@ const Field = ({
 )
 
 // ── Profile section ───────────────────────────────────────────────────────────
+const ProfileSkeleton = () => (
+  <div className="animate-pulse" aria-busy="true" aria-label="Loading profile">
+    <div className="h-6 w-40 rounded bg-white/10 mb-4" />
+    <div className="w-25 h-25 rounded-full bg-white/10 mb-4" />
+    <div className="flex flex-col gap-4">
+      {[0, 1, 2].map((i) => (
+        <div key={i} className="flex flex-col gap-1.5">
+          <div className="h-4 w-28 rounded bg-white/10" />
+          <div className="h-10 w-full rounded-md bg-white/10" />
+        </div>
+      ))}
+      <div className="h-10 w-36 rounded-md bg-white/10 mt-1" />
+    </div>
+  </div>
+)
+
 const ProfileSection = () => {
   const { email, publicAddress } = useSelector(selectUserData)
   const token = useSelector((state: RootState) => state.auth.token)
+  const isAuthChecking = useSelector(selectIsAuthChecking)
 
   const { data: profile, isLoading: profileLoading } = useProfileQuery(undefined, {
     skip: !token,
@@ -118,7 +138,8 @@ const ProfileSection = () => {
     setErrorMsg("")
     try {
       await updateProfile({ name: username.trim() }).unwrap()
-      setUsernameEdit(null) // reset override; profile cache will refresh via invalidatesTags
+      // Keep the typed value: resetting to null would show the stale cached name until the
+      // refetch (triggered by invalidatesTags) lands, making the old name flash back.
       setSaveStatus("success")
       setTimeout(() => setSaveStatus("idle"), 3000)
     } catch {
@@ -128,6 +149,9 @@ const ProfileSection = () => {
   }
 
   const isDirty = username.trim() !== savedName
+
+  // On reload, email/address/name arrive asynchronously; avoid flashing empty fallbacks.
+  if (isAuthChecking || profileLoading) return <ProfileSkeleton />
 
   return (
     <div>
@@ -178,7 +202,7 @@ const ProfileSection = () => {
 
         {/* Social Connections */}
         <div className="flex flex-col gap-3 mt-1">
-          <span className="text-sm font-medium text-tab-text">Social Connections</span>
+          <span className="font-sm font-medium text-tab-text">Social Connections</span>
           <div className="flex flex-wrap gap-3">
             <button className="flex items-center gap-2 px-4 py-2.5 rounded-md  border border-[#334155] font-sm font-medium disabled:text-white/60 disabled:border-[#334155]/50 text-white hover:border-white/25 transition-colors">
               <svg
@@ -209,12 +233,12 @@ const ProfileSection = () => {
 
         {/* Feedback */}
         {saveStatus === "success" && (
-          <p className="text-xs text-primary font-medium flex items-center gap-1">
+          <p className="font-base text-primary font-medium flex items-center gap-1">
             <Check size={12} /> Profile updated successfully
           </p>
         )}
         {saveStatus === "error" && (
-          <p className="text-xs text-destructive font-medium">{errorMsg}</p>
+          <p className="font-base text-destructive font-medium">{errorMsg}</p>
         )}
 
         {/* Save button */}
@@ -222,7 +246,7 @@ const ProfileSection = () => {
           <button
             onClick={handleSave}
             disabled={saving || !isDirty || !username.trim()}
-            className="h-11 w-45 hflex items-center gap-2 px-4 py-2 bg-primary text-black text-sm font-bold rounded-sm hover:bg-primary/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="h-11 w-45 hflex items-center gap-2 px-4 py-2 bg-primary text-black font-sm font-bold rounded-sm hover:bg-primary/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {saving && (
               <span className="w-3.5 h-3.5 rounded-full border-2 font-base font-bold border-black/20 border-t-black animate-spin" />
@@ -242,16 +266,16 @@ const AccountSection = () => {
 
   return (
     <div>
-      <h2 className="font-lg font-semibold text-white mb-6">Account Settings</h2>
-      <h3 className="text-sm font-semibold text-tab-text mb-2">Two Factor Authentication</h3>
+      <h2 className="font-lg font-semibold text-white mb-4">Account Settings</h2>
+      <h3 className="font-sm font-semibold text-tab-text mb-2">Two Factor Authentication</h3>
 
       {/* ── 2FA ── */}
       <div className="flex flex-col gap-4 mb-8">
         <div className="flex items-center justify-between gap-4 p-2.5 rounded-2md bg-white/5 border border-white/10">
           <div className="flex items-start gap-3">
             <div>
-              <p className="font-semibold text-white">Enable 2FA</p>
-              <p className="font-sm text-white/40 mt-0.5 leading-relaxed">
+              <p className="font-sm font-semibold text-white">Enable 2FA</p>
+              <p className="font-base text-white/40 mt-0.5 leading-relaxed">
                 Add an extra layer of security to your account using an authenticator app
               </p>
             </div>
@@ -277,8 +301,8 @@ const AccountSection = () => {
       <div className="border border-red-500/20 rounded-2md  p-2.5">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="font-semibold text-white">Delete Account</p>
-            <p className="font-sm text-white/40 mt-0.5 leading-relaxed">
+            <p className="font-sm font-semibold text-white">Delete Account</p>
+            <p className="font-base text-white/40 mt-0.5 leading-relaxed">
               Permanently delete your account and all associated data. This action cannot be undone.
             </p>
           </div>
@@ -286,7 +310,7 @@ const AccountSection = () => {
           {!showDeleteConfirm ? (
             <button
               onClick={() => setShowDeleteConfirm(true)}
-              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-red-500/40 text-red-400 text-xs font-semibold hover:bg-red-500/10 transition-colors"
+              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-red-500/40 text-red-400 font-base font-semibold hover:bg-red-500/10 transition-colors"
             >
               <Trash2 size={12} />
               Delete
@@ -295,7 +319,7 @@ const AccountSection = () => {
             <div className="shrink-0 flex gap-2">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="px-3 py-1.5  text-white text-xs font-semibold hover:bg-white/5 transition-colors"
+                className="px-3 py-1.5  text-white font-base font-semibold hover:bg-white/5 transition-colors"
               >
                 Cancel
               </button>
@@ -304,7 +328,7 @@ const AccountSection = () => {
                   // TODO: wire delete account API
                   setShowDeleteConfirm(false)
                 }}
-                className="px-3 py-1.5 rounded-md bg-red-500/15 border border-red-500/50 text-red-400 text-xs font-bold hover:bg-red-500/25 transition-colors"
+                className="px-3 py-1.5 rounded-md bg-red-500/15 border border-red-500/50 text-red-400 font-base font-bold hover:bg-red-500/25 transition-colors"
               >
                 Confirm
               </button>
@@ -315,6 +339,78 @@ const AccountSection = () => {
     </div>
   )
 }
+
+// ── Notification section ──────────────────────────────────────────────────────
+// Browser push permission (allow / blocked). Everything else about notifications
+// (read, clear, list) lives in the navbar bell.
+const NotificationSection = () => {
+  const { enable } = usePushNotifications()
+  const [busy, setBusy] = useState(false)
+  // Permission lives in the browser, not Redux — bump to re-read it after the prompt.
+  const [, refresh] = useState(0)
+  const permission = getNotificationPermission()
+
+  const handleEnable = async () => {
+    setBusy(true)
+    try {
+      const result = await enable()
+      if (result === "granted" || result === "granted-next-login") {
+        toast.success("Push notifications enabled")
+      } else if (result === "denied") {
+        toast.error("Notifications are blocked in your browser settings")
+      } else if (getNotificationPermission() !== "granted") {
+        toast.error("This browser can't receive push notifications")
+      }
+    } finally {
+      setBusy(false)
+      refresh((n) => n + 1)
+    }
+  }
+
+  const description =
+    permission === "granted"
+      ? "Push notifications are on. To turn them off, block notifications for this site from the lock icon in your address bar."
+      : permission === "denied"
+        ? "Push notifications are blocked. Allow them from the lock icon in your address bar, then reload."
+        : permission === "unsupported"
+          ? "This browser can't receive push notifications."
+          : "Get alerts for order fills and market results."
+
+  return (
+    <div>
+      <h2 className="font-lg font-semibold text-white mb-4">Notification Settings</h2>
+      <div className="flex items-center justify-between gap-4 p-2.5 rounded-2md bg-white/5 border border-white/10">
+        <div className="min-w-0">
+          <p className="font-sm font-semibold text-white">Push notifications</p>
+          <p className="font-base text-white/40 mt-0.5 leading-relaxed">{description}</p>
+        </div>
+        <div className="shrink-0">
+          {permission === "granted" ? (
+            <span className="font-sm font-semibold text-primary flex items-center gap-1.5">
+              <Check size={14} /> Allowed
+            </span>
+          ) : permission === "denied" ? (
+            <span className="font-sm font-semibold text-[#E11D48]">Blocked</span>
+          ) : permission === "unsupported" ? null : (
+            <button
+              onClick={handleEnable}
+              disabled={busy}
+              className="py-2 px-4 rounded-md bg-primary text-black font-sm font-bold hover:bg-primary/80 transition-colors disabled:opacity-50"
+            >
+              {busy ? "Waiting for your browser…" : "Allow"}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const TAB_PANELS: { id: Tab; Panel: React.ComponentType }[] = [
+  { id: "profile", Panel: ProfileSection },
+  { id: "account", Panel: AccountSection },
+  { id: "notifications", Panel: NotificationSection },
+]
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 const SettingsPage = () => {
@@ -349,19 +445,46 @@ const SettingsPage = () => {
         </aside>
 
         {/* ── Content panel ── */}
-        <div className="flex-1 max-w-4xl">
-          {activeTab === "profile" && <ProfileSection />}
-          {activeTab === "account" && <AccountSection />}
-          {activeTab === "notifications" && (
-            <div>
-              <h2 className="font-lg font-semibold text-white mb-4">Notification Settings</h2>
-              <p className="text-sm text-white/40">Notification settings coming soon.</p>
+        {/* All tabs share one grid cell, so the panel is always as tall as the tallest tab
+            and the layout doesn't jump when switching. Inactive tabs are hidden and inert. */}
+        <div className="flex-1 max-w-4xl grid">
+          {TAB_PANELS.map(({ id, Panel }) => (
+            <div
+              key={id}
+              className={`col-start-1 row-start-1 ${activeTab === id ? "" : "invisible"}`}
+              aria-hidden={activeTab !== id}
+              inert={activeTab !== id}
+            >
+              <Panel />
             </div>
-          )}
+          ))}
         </div>
       </div>
     </div>
   )
 }
+
+// Shown by the route guard while the session is being restored, so the page frame
+// stays on screen instead of vanishing and re-rendering.
+export const SettingsPageSkeleton = () => (
+  <div className="container mt-4 md:mt-6 mb-12 md:mb-18.5">
+    <div className="mb-7.5">
+      <h1 className="font-xxl font-black text-white">Settings</h1>
+      <p className="font-sm mt-2.5 text-white ">
+        Manage your public presence and account security on the platform.
+      </p>
+    </div>
+    <div className="flex flex-col md:flex-row gap-5">
+      <aside className="w-full md:w-62.5 shrink-0 flex flex-row md:flex-col gap-1 animate-pulse">
+        {NAV_ITEMS.map(({ id }) => (
+          <div key={id} className="h-10 w-full rounded-md bg-white/10" />
+        ))}
+      </aside>
+      <div className="flex-1 max-w-4xl">
+        <ProfileSkeleton />
+      </div>
+    </div>
+  </div>
+)
 
 export default SettingsPage

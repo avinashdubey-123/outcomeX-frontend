@@ -40,6 +40,27 @@ export const LoginModal = ({ open, onClose }: LoginModalProps) => {
   const deviceToken = useAppSelector(selectDeviceToken)
   const discoveredWallets = useEIP6963()
 
+  const isEmailLoading = loading === States.Email
+
+  // Shared by the button and the Enter key. Ignores repeat calls while a login is running so
+  // the Magic flow can't be started twice.
+  const submitEmail = () => {
+    if (!email || loading) return
+    setLoading(States.Email)
+    handleEmailLogin({
+      email,
+      magic,
+      dispatch,
+      loginToBackend,
+      deviceToken: deviceToken as string,
+      onSuccess: () => {
+        setLoading(null)
+        onClose()
+      },
+      onError: () => setLoading(null),
+    })
+  }
+
   const handleClose = () => {
     setLoading(null)
     dispatch(loadingFalse())
@@ -106,43 +127,16 @@ export const LoginModal = ({ open, onClose }: LoginModalProps) => {
             placeholder="you@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            onKeyDown={(e) =>
-              e.key === "Enter" &&
-              handleEmailLogin({
-                email,
-                magic,
-                dispatch,
-                loginToBackend,
-                deviceToken: deviceToken as string,
-                onSuccess: () => {
-                  setLoading(null)
-                  onClose()
-                },
-                onError: () => setLoading(null),
-              })
-            }
+            onKeyDown={(e) => e.key === "Enter" && submitEmail()}
+            disabled={!!loading}
             className="flex-1 bg-white/5 border font-medium border-white/10 rounded-2md px-4 py-2 text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-primary/50 font-sm"
           />
           <Button
-            onClick={() => {
-              setLoading(States.Email)
-              handleEmailLogin({
-                email,
-                magic,
-                dispatch,
-                loginToBackend,
-                deviceToken: deviceToken as string,
-                onSuccess: () => {
-                  setLoading(null)
-                  onClose()
-                },
-                onError: () => setLoading(null),
-              })
-            }}
+            onClick={submitEmail}
             disabled={!email || !!loading}
-            className="bg-primary hover:bg-primary/80 rounded-sm text-black px-4"
+            className="bg-primary hover:bg-primary/80 rounded-sm text-black px-4 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {loading === "email" ? "..." : "Continue"}
+            {isEmailLoading ? "Connecting…" : "Continue"}
           </Button>
         </div>
 
