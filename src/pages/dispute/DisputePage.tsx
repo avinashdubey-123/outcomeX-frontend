@@ -1,6 +1,7 @@
-import { AlertTriangle, ArrowLeft, Clock, Copy, Gavel, Loader2 } from "lucide-react"
-import { useEffect, useState } from "react"
+import { AlertTriangle, ArrowLeft, Check, Clock, Copy, Gavel, Loader2 } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
 import { useNavigate, useParams } from "react-router"
+import { toast } from "sonner"
 
 import { useGetMarketByIdQuery, useGetOracleTimelineQuery } from "@/features/api/markets/marketApi"
 import { extractDisputeData } from "@/features/markets/disputeHelpers"
@@ -9,6 +10,14 @@ import { useDisputeTransactions } from "@/hooks/dispute/useDisputeTransactions"
 // Shared card styling. No hover effects: these are read-only panels, not buttons.
 const CARD = "rounded-2xl border border-white/10 bg-linear-to-b from-white/5 to-white/2 p-5 md:p-6"
 const LABEL = "mb-3 font-xs font-bold uppercase tracking-widest text-white/40"
+
+// Wallet/RPC failures usually come back as raw library text ("could not coalesce error", ...),
+// which means nothing to a user. Only a wallet rejection is worth explaining; every other
+// failure gets just the toast title.
+const errorDescription = (err: unknown): string | undefined => {
+  const msg = err instanceof Error ? err.message : typeof err === "string" ? err : ""
+  return /rejected|denied/i.test(msg) ? "You rejected the request in your wallet." : undefined
+}
 
 export const DisputePage = () => {
   const { id } = useParams()
@@ -36,7 +45,14 @@ export const DisputePage = () => {
 
   const [countdown, setCountdown] = useState<string>("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  // Stays true after a successful dispute so the button can't be clicked again while the page
+  // waits to close itself.
+  const [isSubmitted, setIsSubmitted] = useState(false)
+  // State updates are async, so two quick clicks could both pass an `isSubmitting` check.
+  // The ref flips synchronously and blocks the second call.
+  const submitLock = useRef(false)
   const [status, setStatus] = useState<string>("")
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     if (!disputeData?.proposedTimestamp) return
@@ -66,22 +82,41 @@ export const DisputePage = () => {
 
   const handleCancel = () => navigate(-1)
 
+  const handleCopyIdentifier = async () => {
+    try {
+      await navigator.clipboard.writeText(market?.oracleIdentifier || "")
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1000)
+    } catch (err) {
+      console.error("Failed to copy to clipboard:", err)
+      toast.error("Could not copy identifier")
+    }
+  }
+
   const { approveUSDC, submitDisputeTransaction } = useDisputeTransactions()
 
   const handleSubmit = async () => {
+    if (submitLock.current || isSubmitted) return
     if (!disputeData) {
-      setStatus("❌ Dispute data is unavailable. Please refresh and try again.")
+      toast.error("Dispute data is unavailable. Please refresh and try again.")
       return
     }
-    setIsSubmitting(true)
-    setStatus("Initializing...")
 
     // Identifier must come from market object — timeline action=1 rows don't reliably include it
     const identifier = market?.oracleIdentifier
     if (!identifier) {
-      setStatus("❌ Oracle identifier not found. Cannot raise dispute.")
-      setIsSubmitting(false)
+      toast.error("Oracle identifier not found. Cannot raise dispute.")
       return
+    }
+
+    submitLock.current = true
+    setIsSubmitting(true)
+    setStatus("Preparing...")
+
+    // The hooks also report failures through this callback; those are shown as toasts below,
+    // so only progress messages are kept for the button hint.
+    const onProgress = (msg: string) => {
+      if (!msg.startsWith("❌")) setStatus(msg.replace(/^✅\s*/, ""))
     }
 
     try {
@@ -93,48 +128,46 @@ export const DisputePage = () => {
       const approvalResult = await approveUSDC(
         oracleAddress,
         disputeData.bondAmount.toString(),
-        setStatus,
+        onProgress,
       )
 
       if (!approvalResult.success) {
-        throw new Error("USDC approval failed")
+        toast.error("USDC approval failed", { description: errorDescription(approvalResult.error) })
+        return
       }
 
       // Step 2: Submit Dispute
       const disputeResult = await submitDisputeTransaction(
         identifier, // sourced from market.oracleIdentifier — timeline rows don't include this
         BigInt(disputeData.bondAmount).toString(),
-        setStatus,
+        onProgress,
       )
 
       if (!disputeResult.success) {
-        throw new Error("Dispute submission failed")
+        toast.error("Dispute submission failed", {
+          description: errorDescription(disputeResult.error),
+        })
+        return
       }
 
-      // Step 3: Show success
-      setStatus(`✅ Dispute raised successfully!
-      
-Approval Tx: ${approvalResult.txHash}
-Dispute Tx: ${disputeResult.txHash}
-      
-The backend will automatically detect the AnswerDisputed event and update the database.`)
-
+      // Step 3: Show success. The backend picks up the AnswerDisputed event and updates the DB.
+      toast.success("Dispute raised successfully")
+      setIsSubmitted(true)
       if (id) {
         localStorage.setItem(`dispute_raised_${id}`, "true")
       }
 
-      // Auto close after 5 seconds
       setTimeout(() => {
         navigate(-1)
-      }, 5000)
+      }, 3000)
     } catch (err: unknown) {
       console.error(err)
-      setStatus(
-        `❌ Error: ${(err as { message: string }).message || "An unexpected error occurred."}`,
-      )
+      toast.error("Dispute failed", { description: errorDescription(err) })
+    } finally {
+      submitLock.current = false
+      setIsSubmitting(false)
+      setStatus("")
     }
-
-    setIsSubmitting(false)
   }
 
   if (marketLoading || timelineLoading)
@@ -152,9 +185,9 @@ The backend will automatically detect the AnswerDisputed event and update the da
         <div className="p-3 bg-red-500/10 border rounded-md border-red-500/20 mb-6">
           <AlertTriangle className="text-red-500" size={32} />
         </div>
-        <h2 className="font-lg font-black uppercase  mb-2">Protocol Link Failure</h2>
+        <h2 className="font-lg font-bold mb-2">Couldn't load dispute</h2>
         <p className="text-white/60 max-w-xs font-sm ">
-          Failed to load dispute data. Please refresh the connection.
+          Failed to load dispute data. Please refresh and try again.
         </p>
       </div>
     )
@@ -164,7 +197,7 @@ The backend will automatically detect the AnswerDisputed event and update the da
         <div className="p-3 bg-gray-500/10 border rounded-md border-gray-500/20 mb-6">
           <AlertTriangle className="text-gray-500" size={32} />
         </div>
-        <h2 className="font-lg font-black uppercase  mb-2">Data Null</h2>
+        <h2 className="font-lg font-bold mb-2">No dispute available</h2>
         <p className="text-gray-500 max-w-xs font-sm ">
           No disputable answer found for this market.
         </p>
@@ -177,12 +210,12 @@ The backend will automatically detect the AnswerDisputed event and update the da
       <div className="flex items-center justify-center md:min-h-screen  p-6">
         <div className="bg-linear-to-b from-white/5 to-white/2 border border-white/10 py-5 px-6 rounded-lg max-w-md w-full relative overflow-hidden">
           <div className="flex flex-wrap items-center gap-4 mb-6">
-            <div className="p-3 bg-option-no/10 border border-option-no rounded-md">
-              <AlertTriangle className="text-no" size={24} />
+            <div className="p-3 bg-dispute/10 border border-dispute/30 rounded-md">
+              <AlertTriangle className="text-dispute" size={24} />
             </div>
-            <h2 className="font-lg font-black uppercase  mb-2">Dispute Unavailable</h2>
+            <h2 className="font-lg font-bold mb-2">Dispute unavailable</h2>
           </div>
-          <p className="text-xs font-medium text-white/60 tracking-widest leading-loose mb-8">
+          <p className="font-sm text-white/60 leading-relaxed mb-8">
             {latestOracleAction === 2 && "A dispute has already been raised for this market."}
             {latestOracleAction === 3 && "This dispute has already been settled by the admin."}
             {latestOracleAction === 4 &&
@@ -191,9 +224,9 @@ The backend will automatically detect the AnswerDisputed event and update the da
           </p>
           <button
             onClick={handleCancel}
-            className="w-full font-default py-4 bg-primary hover:bg-primary/90 border rounded-2md border-white/5 text-black font-black uppercase  transition-all"
+            className="w-full cursor-pointer rounded-md bg-primary px-6 py-4 font-base font-bold text-black transition-all hover:bg-primary/90"
           >
-            RETURN TO TERMINAL
+            Back to market
           </button>
         </div>
       </div>
@@ -278,26 +311,17 @@ The backend will automatically detect the AnswerDisputed event and update the da
                 {market.oracleIdentifier || "N/A"}
               </code>
               <button
-                onClick={() => navigator.clipboard.writeText(market.oracleIdentifier || "")}
-                className="ml-auto cursor-pointer text-white/30 transition-colors hover:text-white"
-                title="Copy identifier"
+                onClick={handleCopyIdentifier}
+                className={`ml-auto cursor-pointer transition-colors ${
+                  copied ? "text-primary" : "text-white/30 hover:text-white"
+                }`}
+                title={copied ? "Copied" : "Copy identifier"}
                 aria-label="Copy identifier"
               >
-                <Copy size={16} />
+                {copied ? <Check size={16} /> : <Copy size={16} />}
               </button>
             </div>
           </section>
-
-          {/* Execution log */}
-          {status && (
-            <div className="animate-in fade-in slide-in-from-top-2 rounded-xl border border-primary/20 bg-primary/5 p-5 font-mono text-xs break-words whitespace-pre-wrap text-primary duration-300">
-              <div className="mb-2 flex items-center gap-2 text-[10px] font-black tracking-widest uppercase opacity-70">
-                <Loader2 size={12} className={isSubmitting ? "animate-spin" : ""} />
-                Execution log
-              </div>
-              {status}
-            </div>
-          )}
         </div>
 
         {/* ── Right: bond, steps and the action ── */}
@@ -312,7 +336,7 @@ The backend will automatically detect the AnswerDisputed event and update the da
 
           <section className={CARD}>
             <div className="mb-4 flex items-center gap-2 font-sm font-bold text-white">
-              <AlertTriangle size={16} className="text-no" />
+              <AlertTriangle size={16} className="text-dispute" />
               You will approve 2 transactions
             </div>
             <ol className="space-y-4">
@@ -340,15 +364,27 @@ The backend will automatically detect the AnswerDisputed event and update the da
           <div className="flex flex-col gap-3">
             <button
               onClick={handleSubmit}
-              disabled={isSubmitting || isExpired}
+              disabled={isSubmitting || isSubmitted || isExpired}
+              aria-busy={isSubmitting}
               className="flex w-full cursor-pointer items-center justify-center gap-3 rounded-md bg-primary px-6 py-4 font-base font-bold tracking-widest text-black uppercase transition-all hover:bg-primary/90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:grayscale"
             >
               {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Gavel size={16} />}
-              {isExpired ? "Period expired" : isSubmitting ? "Submitting..." : "Submit dispute"}
+              {isExpired
+                ? "Period expired"
+                : isSubmitting
+                  ? "Processing..."
+                  : isSubmitted
+                    ? "Dispute submitted"
+                    : "Submit dispute"}
             </button>
+            {isSubmitting && status && (
+              <p className="text-center font-xs text-white/50" aria-live="polite">
+                {status}
+              </p>
+            )}
             <button
               onClick={handleCancel}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isSubmitted}
               className="w-full cursor-pointer rounded-md border border-white/10 py-3 font-base font-semibold text-white/60 transition-colors hover:bg-white/5 hover:text-white disabled:opacity-50"
             >
               Cancel

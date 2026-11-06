@@ -87,8 +87,8 @@ function buildContinuousPriceData(history: OhlcCandle[], tab: ChartTab) {
   // Dynamically adapt grid density and labels to perfectly match the market's age.
   // If a market is only 1 day old, viewing "1W" or "1M" or "ALL" should just look like "1D".
   let effectiveTab = tab
-  // ALL shows the full history once the market is older than the 1M window
-  if (tab === "ALL" && spanDays <= 28) effectiveTab = "1M"
+  // ALL deliberately renders exactly like 1M (same data, window and labels)
+  if (tab === "ALL") effectiveTab = "1M"
 
   if (spanDays <= 2) {
     effectiveTab = "1D"
@@ -111,9 +111,13 @@ function buildContinuousPriceData(history: OhlcCandle[], tab: ChartTab) {
     windowStart = new Date(marketStartSecs * 1000)
   }
 
-  // CRITICAL: Clamp windowStart so we NEVER draw flat lines before the market existed!
+  // CRITICAL: Never draw flat lines before the market existed! Normally the window is clamped
+  // to the first data point. The 1W tab is the exception: it always spans the full 7 days, and
+  // days before the first recorded price are drawn flat at that first price, so a week with
+  // missing history is still plotted across the whole width instead of leaving it blank.
+  const keepFullWindow = effectiveTab === "1W"
   const marketStart = new Date(marketStartSecs * 1000)
-  if (windowStart.getTime() < marketStart.getTime()) {
+  if (!keepFullWindow && windowStart.getTime() < marketStart.getTime()) {
     windowStart = marketStart
   }
   const leftPaddingSecs =
@@ -121,8 +125,8 @@ function buildContinuousPriceData(history: OhlcCandle[], tab: ChartTab) {
   const windowStartSecs = Math.floor(windowStart.getTime() / 1000)
   const rawPaddedStart = windowStartSecs - leftPaddingSecs
 
-  const rightPaddingSecs = effectiveTab === "1D" ? 30 * 60 : 6 * 3600
-  const windowEnd = nowSecs + rightPaddingSecs
+  // The chart ends at "now" — nothing is drawn for the future.
+  const windowEnd = nowSecs
 
   let stepSecs: number
   if (effectiveTab === "1D") stepSecs = 10 * 60
@@ -159,6 +163,18 @@ function buildContinuousPriceData(history: OhlcCandle[], tab: ChartTab) {
     }
     // Shift timestamps by tzOffset so lightweight-charts aligns its UTC boundaries to Local time!
     result.push({ time: (t - tzOffset) as unknown as string, value: lastKnownPrice })
+  }
+
+  // The grid is aligned to round times, so the last slot can be up to one step behind "now".
+  // Close the line at the current moment so the latest price is plotted.
+  const lastSlot = Number(result[result.length - 1]?.time ?? -Infinity)
+  const nowShifted = nowSecs - tzOffset
+  if (nowShifted > lastSlot) {
+    while (realIdx < sorted.length && sorted[realIdx]!.time <= nowSecs) {
+      lastKnownPrice = sorted[realIdx]!.close
+      realIdx++
+    }
+    result.push({ time: nowShifted as unknown as string, value: lastKnownPrice })
   }
 
   return { chartData: result, effectiveTab }

@@ -95,11 +95,7 @@ export const StatsCards = ({
         subColor={pnlPositive ? "#18C964" : PORTFOLIO_COLORS.RED}
         icon={<TrendingUp size={16} color={pnlPositive ? "#18C964" : "#e53935"} />}
         iconBg={pnlPositive ? "#18C96433" : "rgba(229, 57, 53, 0.15)"}
-        cardBg={
-          pnlPositive
-            ? "linear-gradient(135deg, rgba(24, 201, 100, 0.1) 0%, rgba(24, 201, 100, 0.05) 100%)"
-            : "linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%)"
-        }
+        cardBg="linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%)"
       />
       <StatCard
         label="Active Positions"

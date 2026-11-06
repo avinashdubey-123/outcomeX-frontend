@@ -2,11 +2,11 @@ importScripts("https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js")
 importScripts("https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js")
 
 firebase.initializeApp({
-  apiKey: "AIzaSyCCpVLsGWPXGajTRmevW9RnA02YK6ObJhg",
-  authDomain: "outcome-x-a8075.firebaseapp.com",
-  projectId: "outcome-x-a8075",
-  messagingSenderId: "224090784456",
-  appId: "1:224090784456:web:361df2bb98b4655ad21bfd"
+  apiKey: "AIzaSyCnYTzB26AdVhh5zY5aro1RgfNWi-wI7Cw",
+  authDomain: "outcomex-chicmic.firebaseapp.com",
+  projectId: "outcomex-chicmic",
+  messagingSenderId: "244869741802",
+  appId: "1:244869741802:web:d8986be9d364bf3f10eb93"
 });
 
 // Apply an updated worker straight away instead of waiting for every tab to close.
