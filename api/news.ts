@@ -1,4 +1,4 @@
-import { getNews } from "./_lib/newsCore"
+import { getNews } from "./_lib/newsCore.js"
 
 type VercelRequest = { method?: string; query?: { query?: string; category?: string } }
 type VercelResponse = { status: (code: number) => { json: (body: unknown) => void } }
