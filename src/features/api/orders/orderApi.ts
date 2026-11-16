@@ -34,6 +34,7 @@ export const orderApi = secondApi.injectEndpoints({
       },
       // cache each unique param combination separately
       serializeQueryArgs: ({ queryArgs }) => queryArgs,
+      providesTags: ["Orders"],
     }),
 
     cancelOrder: builder.mutation<unknown, string>({

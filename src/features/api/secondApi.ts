@@ -69,6 +69,6 @@ const baseQueryWithAuthGuard: BaseQueryFn<
 export const secondApi = createApi({
   reducerPath: "secondApi",
   baseQuery: baseQueryWithAuthGuard,
-  tagTypes: ["Markets", "Orders", "Profile"],
+  tagTypes: ["Markets", "Orders", "Profile", "Portfolio"],
   endpoints: () => ({}),
 })

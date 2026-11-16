@@ -1,14 +1,16 @@
 // src/pages/portfolio/PortfolioPage.tsx
 // Main portfolio page — clean orchestration only, all UI in sub-components
-import { Filter, MoreVertical, Search, X } from "lucide-react"
+import { Filter, MoreVertical, RefreshCw, Search, X } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useSelector, useStore } from "react-redux"
 import { useNavigate } from "react-router"
 
+import { useAppDispatch } from "@/app/hooks"
 import type { RootState } from "@/app/store"
 import { LoginModal } from "@/components/auth/LoginModal"
 import { MetaMaskDepositModal } from "@/components/deposit/MetaMaskDepositModal"
 import { WithdrawModal } from "@/components/withdrawl/withdrawModal"
+import { secondApi } from "@/features/api/secondApi"
 import {
   selectAvailableAmount,
   selectIsAuthChecking,
@@ -84,6 +86,22 @@ const PortfolioPage = () => {
       return
     }
     await magic?.wallet.showUI()
+  }
+
+  // ── Refresh ──
+  // Re-fetches positions, orders/history and profile by invalidating their cache tags; the
+  // mounted tab's queries refetch immediately, the others refetch when their tab is opened.
+  const dispatch = useAppDispatch()
+  const isRefreshing = useSelector((state: RootState) =>
+    Object.values(state.secondApi.queries).some(
+      (q) =>
+        q?.status === "pending" &&
+        (q.endpointName === "getPortfolioPositions" || q.endpointName === "getOrders"),
+    ),
+  )
+  const handleRefresh = () => {
+    if (!isAuthenticated || isRefreshing) return
+    dispatch(secondApi.util.invalidateTags(["Portfolio", "Orders", "Profile"]))
   }
 
   // TODO: replace MOCK_PORTFOLIO_STATS with useGetPortfolioStatsQuery()
@@ -185,6 +203,22 @@ const PortfolioPage = () => {
 
             {/* filter + search */}
             <div className="flex gap-2.5 items-center">
+              <button
+                type="button"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                title="Refresh"
+                aria-label="Refresh portfolio"
+                className="shrink-0 size-10 rounded-full border border-white/10 bg-white/5 text-white/70 flex items-center justify-center cursor-pointer transition-colors hover:bg-white/10 hover:border-white/20 hover:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/50 disabled:cursor-not-allowed disabled:text-white/40"
+              >
+                <RefreshCw
+                  size={16}
+                  strokeWidth={2.25}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={isRefreshing ? "animate-spin" : undefined}
+                />
+              </button>
               <button className="flex items-center gap-1.5 py-2.5 px-3.5  rounded-2md border border-white/10 bg-white/5 text-white font-base font-semibold cursor-pointer">
                 <Filter className="text-white size-3.5" /> Filter
               </button>

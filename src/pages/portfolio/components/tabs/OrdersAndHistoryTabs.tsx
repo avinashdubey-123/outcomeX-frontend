@@ -299,7 +299,7 @@ export const PortfolioOrdersTab = ({ search }: OrdersTabProps) => {
 
   const {
     data: pendingData,
-    isLoading: pendingLoading,
+    isFetching: pendingLoading,
     refetch: refetchPending,
   } = useGetOrdersQuery({
     status: ORDER_STATUS_PARAM.PENDING,
@@ -308,7 +308,7 @@ export const PortfolioOrdersTab = ({ search }: OrdersTabProps) => {
   })
   const {
     data: partialData,
-    isLoading: partialLoading,
+    isFetching: partialLoading,
     refetch: refetchPartial,
   } = useGetOrdersQuery({
     status: ORDER_STATUS_PARAM.PARTIALLY_FILLED,
@@ -495,12 +495,12 @@ export const HistoryTab = ({ search }: HistoryTabProps) => {
   const [page, setPage] = useState(1)
   const skip = (page - 1) * PAGE_SIZE
 
-  const { data: filledData, isLoading: filledLoading } = useGetOrdersQuery({
+  const { data: filledData, isFetching: filledLoading } = useGetOrdersQuery({
     status: ORDER_STATUS_PARAM.FILLED,
     limit: PAGE_SIZE,
     skip,
   })
-  const { data: cancelledData, isLoading: cancelledLoading } = useGetOrdersQuery({
+  const { data: cancelledData, isFetching: cancelledLoading } = useGetOrdersQuery({
     status: ORDER_STATUS_PARAM.CANCELLED,
     limit: PAGE_SIZE,
     skip,

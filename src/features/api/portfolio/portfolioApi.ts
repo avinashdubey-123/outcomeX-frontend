@@ -57,6 +57,7 @@ export const portfolioApi = secondApi.injectEndpoints({
         return `/v1/user/portfolio?${params.toString()}`
       },
       serializeQueryArgs: ({ queryArgs }) => queryArgs,
+      providesTags: ["Portfolio"],
     }),
   }),
 })

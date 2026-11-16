@@ -366,12 +366,13 @@ export const PositionsTab = ({ search }: PositionsTabProps) => {
   // and leave positions blank until the user switches tabs and back.
   const isAuthChecking = useSelector(selectIsAuthChecking)
 
-  const { data, isLoading: queryLoading } = useGetPortfolioPositionsQuery(
+  const { data, isFetching } = useGetPortfolioPositionsQuery(
     { limit: PAGE_SIZE, skip },
     { skip: isAuthChecking },
   )
 
-  const isLoading = isAuthChecking || queryLoading
+  // isFetching (not isLoading) so the skeleton also shows on refetch, e.g. the Refresh button
+  const isLoading = isAuthChecking || isFetching
 
   const apiPositions = (data?.data.data ?? []).map(mapApiPosition)
   const totalApiCount = data?.data.count ?? 0
