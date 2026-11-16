@@ -165,7 +165,13 @@ export const MetaMaskDepositModal = ({ open, onClose }: MetaMaskDepositModalProp
             value={`${NETWORK_INFO.name} (Chain ID: ${NETWORK_INFO.chainId})`}
           />
           {usdcAddress && (
-            <InfoRow label="USDC Contract Address" value={shortAddr(usdcAddress)} copyable mono />
+            <InfoRow
+              label="USDC Contract Address"
+              value={usdcAddress}
+              displayValue={shortAddr(usdcAddress)}
+              copyable
+              mono
+            />
           )}
 
           <div className="flex flex-col gap-3 p-3.5 rounded-md bg-linear-to-b from-white/5 to-white/2 border border-white/10">
